@@ -30,8 +30,12 @@ html, body {
 #app { position: fixed; inset: 0; }
 canvas#view { position: absolute; inset: 0; width: 100%; height: 100%; display: block; }
 
+/* pointer-events is inherited, so this one declaration makes the whole
+   overlay tree click-through; interactive layers (.overlay, #console) opt
+   back in with their own `pointer-events: auto`. Do NOT re-state it on
+   `#ui > *` -- an ID selector there outranks `.overlay` and silently kills
+   every menu button. */
 #ui { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
-#ui > * { pointer-events: none; }
 
 /* ------------------------------------------------------------ HUD */
 
