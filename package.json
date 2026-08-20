@@ -1,0 +1,10 @@
+{
+  "name": "halcyon",
+  "version": "0.9.3",
+  "private": true,
+  "description": "HALCYON — Chapter One: The Terminal Hour. A vaporware FPS for a Source engine that never shipped.",
+  "scripts": {
+    "start": "node serve.js 8080",
+    "dev": "node serve.js 8080"
+  }
+}
