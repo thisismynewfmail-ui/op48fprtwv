@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
+<title>HALCYON — Chapter One: The Terminal Hour</title>
+<meta name="description" content="A vaporware first-person shooter for a Source engine that never shipped.">
+<link rel="stylesheet" href="styles/hud.css">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23120a04'/><circle cx='16' cy='16' r='11' fill='none' stroke='%23ffb340' stroke-width='2'/><path d='M16 8 L16 16 L21 20' stroke='%23ffb340' stroke-width='2' fill='none'/></svg>">
+<script type="importmap">
+{
+  "imports": {
+    "three": "./vendor/three/three.module.js",
+    "three/addons/": "./vendor/three/addons/"
+  }
+}
+</script>
+</head>
+<body>
+<div id="app">
+  <canvas id="view"></canvas>
+
+  <div id="ui">
+
+    <!-- ============================ HUD ============================ -->
+    <div id="hud">
+
+      <div id="clock">
+        <div id="clock-time">11:47</div>
+        <div id="clock-label">THE HOUR</div>
+      </div>
+
+      <div id="objective">
+        <div id="obj-label">OBJECTIVE</div>
+        <div id="obj-text"></div>
+        <div id="obj-sub"></div>
+      </div>
+
+      <div id="notices"></div>
+
+      <div id="boss">
+        <div id="boss-name"></div>
+        <div id="boss-bar"><i style="width:100%"></i></div>
+      </div>
+
+      <div id="chapter">
+        <div id="ch-1">CHAPTER ONE</div>
+        <div id="ch-2">THE TERMINAL HOUR</div>
+      </div>
+
+      <div id="dmg"></div>
+      <div id="vignette-dmg"></div>
+
+      <div id="cross">
+        <i class="h"></i><i class="h"></i><i class="v"></i><i class="v"></i><i class="dot"></i>
+      </div>
+      <div id="hitmark"></div>
+
+      <div id="use-prompt"><em>E</em><span id="use-text"></span></div>
+      <div id="power-flash"></div>
+      <div id="captions"></div>
+
+      <div class="hud-panel" id="hud-left">
+        <div class="hud-stack">
+          <div class="hud-label">Health</div>
+          <div class="hud-value" id="health-v">100</div>
+          <div class="bar" id="health-bar"><i style="width:100%"></i></div>
+        </div>
+        <div class="hud-sep"></div>
+        <div class="hud-stack">
+          <div class="hud-label">Chronal</div>
+          <div class="hud-value" id="chrono-v">100</div>
+          <div class="bar" id="chrono-bar"><i style="width:100%"></i></div>
+        </div>
+      </div>
+
+      <div class="hud-panel" id="hud-right">
+        <div class="hud-stack" style="align-items:flex-end">
+          <div class="hud-label">Ammunition</div>
+          <div style="display:flex;align-items:flex-end;gap:8px">
+            <div class="hud-value" id="ammo-mag">—</div>
+            <div id="ammo-res">0</div>
+          </div>
+          <div id="wpn-name">GNOMON</div>
+        </div>
+      </div>
+
+      <div id="slots"></div>
+      <div id="fps"></div>
+    </div>
+
+    <!-- ========================== LOADING ========================== -->
+    <div class="overlay on" id="loading">
+      <div id="load-title">HALCYON</div>
+      <div id="load-bar"><i></i></div>
+      <div id="load-status">initialising</div>
+    </div>
+
+    <!-- =========================== TITLE =========================== -->
+    <div class="overlay" id="title">
+      <div id="title-logo">HALCYON</div>
+      <div id="title-sub">CHAPTER ONE · THE TERMINAL HOUR</div>
+      <div class="menu">
+        <button class="mi" id="mi-new">NEW GAME<small>Begin at the eleventh hour</small></button>
+        <button class="mi" id="mi-continue">CONTINUE<small>Resume from the last checkpoint</small></button>
+        <button class="mi" id="mi-options">OPTIONS<small>Video, mouse, audio, controls</small></button>
+      </div>
+      <div class="hint">
+        <b>WASD</b> move &nbsp;·&nbsp; <b>SHIFT</b> sprint &nbsp;·&nbsp; <b>SPACE</b> jump &nbsp;·&nbsp; <b>E</b> use<br>
+        <b>Q</b> dilate time &nbsp;·&nbsp; <b>T</b> rewind &nbsp;·&nbsp; <b>F</b> stasis &nbsp;·&nbsp; <b>`</b> console
+      </div>
+      <div id="title-note">Unreleased build. Source-era prototype, recovered.</div>
+      <div id="title-ver">v0.9.3 · build 4096</div>
+    </div>
+
+    <!-- =========================== PAUSE =========================== -->
+    <div class="overlay" id="pause">
+      <div id="pause-title">PAUSED</div>
+      <div class="menu">
+        <button class="mi" id="mi-resume">RESUME</button>
+        <button class="mi" id="mi-p-options">OPTIONS</button>
+        <button class="mi" id="mi-p-restart">RESTART CHAPTER</button>
+        <button class="mi" id="mi-p-title">QUIT TO TITLE</button>
+      </div>
+    </div>
+
+    <!-- ========================== OPTIONS ========================== -->
+    <div class="overlay" id="options">
+      <div id="opt-title">OPTIONS</div>
+      <div id="options-panel"></div>
+      <div class="menu" style="margin-top:18px;min-width:360px">
+        <button class="mi" id="mi-o-reset">RESTORE DEFAULTS</button>
+        <button class="mi" id="mi-o-back">BACK</button>
+      </div>
+    </div>
+
+    <!-- =========================== DEATH =========================== -->
+    <div class="overlay" id="dead">
+      <div id="dead-title">THE HOUR DID NOT MOVE</div>
+      <div id="dead-sub">iteration 4,097</div>
+      <div class="menu">
+        <button class="mi" id="mi-respawn">RELOAD LAST CHECKPOINT</button>
+        <button class="mi" id="mi-d-restart">RESTART CHAPTER</button>
+        <button class="mi" id="mi-d-title">QUIT TO TITLE</button>
+      </div>
+    </div>
+
+    <!-- ============================ END ============================ -->
+    <div class="overlay" id="end">
+      <div id="end-title">CHAPTER ONE COMPLETE</div>
+      <div class="hint" style="margin-bottom:30px;max-width:560px">
+        The hour is twelve. The sun has not woken, but it has stopped pretending.<br>
+        <span style="color:var(--violet)">CHAPTER TWO — THE GARDEN OF FORKING CLOCKS — was never built.</span>
+      </div>
+      <div class="menu">
+        <button class="mi" id="mi-e-restart">PLAY AGAIN</button>
+        <button class="mi" id="mi-e-title">RETURN TO TITLE</button>
+      </div>
+    </div>
+
+    <!-- ========================== CONSOLE ========================== -->
+    <div id="console">
+      <div id="con-out"></div>
+      <input id="con-in" spellcheck="false" autocomplete="off" placeholder="command…">
+    </div>
+
+  </div>
+</div>
+
+<script type="module" src="./src/main.js"></script>
+<noscript><p style="color:#ffb340;padding:40px;font-family:Verdana,sans-serif">HALCYON requires JavaScript and WebGL.</p></noscript>
+</body>
+</html>
