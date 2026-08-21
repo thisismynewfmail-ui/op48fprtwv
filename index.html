@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no">
-<title>HALCYON — Chapter One: The Terminal Hour</title>
+<title>SILICONE DREAMS — Level One: The Terminal Hour</title>
 <meta name="description" content="A vaporware first-person shooter for a Source engine that never shipped.">
 <link rel="stylesheet" href="styles/hud.css">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' fill='%23120a04'/><circle cx='16' cy='16' r='11' fill='none' stroke='%23ffb340' stroke-width='2'/><path d='M16 8 L16 16 L21 20' stroke='%23ffb340' stroke-width='2' fill='none'/></svg>">
@@ -44,8 +44,8 @@
       </div>
 
       <div id="chapter">
-        <div id="ch-1">CHAPTER ONE</div>
-        <div id="ch-2">THE TERMINAL HOUR</div>
+        <div id="ch-1">LEVEL ONE</div>
+        <div id="ch-2">THE ATRIUM OF SLEEPING MACHINES</div>
       </div>
 
       <div id="dmg"></div>
@@ -87,21 +87,53 @@
 
       <div id="slots"></div>
       <div id="fps"></div>
+
+      <div id="collect">
+        RELICS <b id="c-relics">0 / 16</b><br>
+        SILICONE <span class="sil" id="c-sil">0</span><br>
+        JOURNAL <span id="j-badge" class="zero">0</span>
+      </div>
+
+      <div id="relic-banner">
+        <div id="rb-kicker">RELIC RECOVERED</div>
+        <div id="rb-name"></div>
+        <div id="rb-count"></div>
+      </div>
+    </div>
+
+    <!-- ========================== EXAMINE ========================== -->
+    <div id="examine">
+      <div id="ex-card">
+        <div id="ex-name"></div>
+        <div id="ex-lore"></div>
+        <div id="ex-hint">MOUSE TURN &nbsp;·&nbsp; E / RMB RELEASE</div>
+      </div>
+    </div>
+
+    <!-- ========================== JOURNAL ========================== -->
+    <div id="journal">
+      <div id="j-title">JOURNAL</div>
+      <div id="j-sub">LEVEL ONE · THE ATRIUM OF SLEEPING MACHINES</div>
+      <div id="j-cols">
+        <div><div class="j-h">OBJECTIVES</div><div id="j-objectives"></div></div>
+        <div><div class="j-h">FIELD NOTES</div><div id="j-lore"></div></div>
+      </div>
+      <div id="j-hint">TAB TO CLOSE</div>
     </div>
 
     <!-- ========================== LOADING ========================== -->
     <div class="overlay on" id="loading">
-      <div id="load-title">HALCYON</div>
+      <div id="load-title">SILICONE&nbsp;DREAMS</div>
       <div id="load-bar"><i></i></div>
       <div id="load-status">initialising</div>
     </div>
 
     <!-- =========================== TITLE =========================== -->
     <div class="overlay" id="title">
-      <div id="title-logo">HALCYON</div>
-      <div id="title-sub">CHAPTER ONE · THE TERMINAL HOUR</div>
+      <div id="title-logo">SILICONE<br><span class="logo-2">DREAMS</span></div>
+      <div id="title-sub">LEVEL ONE · THE ATRIUM OF SLEEPING MACHINES</div>
       <div class="menu">
-        <button class="mi" id="mi-new">NEW GAME<small>Begin at the eleventh hour</small></button>
+        <button class="mi" id="mi-new">NEW GAME<small>Wake in the atrium at the eleventh hour</small></button>
         <button class="mi" id="mi-continue">CONTINUE<small>Resume from the last checkpoint</small></button>
         <button class="mi" id="mi-options">OPTIONS<small>Video, mouse, audio, controls</small></button>
       </div>
@@ -147,10 +179,10 @@
 
     <!-- ============================ END ============================ -->
     <div class="overlay" id="end">
-      <div id="end-title">CHAPTER ONE COMPLETE</div>
+      <div id="end-title">LEVEL ONE COMPLETE</div>
       <div class="hint" style="margin-bottom:30px;max-width:560px">
         The hour is twelve. The sun has not woken, but it has stopped pretending.<br>
-        <span style="color:var(--violet)">CHAPTER TWO — THE GARDEN OF FORKING CLOCKS — was never built.</span>
+        <span style="color:var(--violet)">LEVEL TWO — THE GARDEN OF FORKING CLOCKS — was never compiled.</span>
       </div>
       <div class="menu">
         <button class="mi" id="mi-e-restart">PLAY AGAIN</button>
@@ -168,6 +200,6 @@
 </div>
 
 <script type="module" src="./src/main.js"></script>
-<noscript><p style="color:#ffb340;padding:40px;font-family:Verdana,sans-serif">HALCYON requires JavaScript and WebGL.</p></noscript>
+<noscript><p style="color:#ffb340;padding:40px;font-family:Verdana,sans-serif">SILICONE DREAMS requires JavaScript and WebGL.</p></noscript>
 </body>
 </html>

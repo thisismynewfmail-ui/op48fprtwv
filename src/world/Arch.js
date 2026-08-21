@@ -1,4 +1,4 @@
-/* HALCYON — Architecture
+/* SILICONE DREAMS — Architecture
  *
  * The classical order, built from scratch: entasis-tapered fluted shafts,
  * two-tier acanthus capitals with corner volutes, semicircular arcades and

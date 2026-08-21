@@ -1,4 +1,4 @@
-/* HALCYON — Materials
+/* SILICONE DREAMS — Materials
  *
  * Deliberately NOT physically based. The look we are matching is Source circa
  * 2003: MeshPhongMaterial, a hot specular lobe, baked-in ambient, and diffuse
@@ -108,6 +108,7 @@ export async function buildMaterials(onProgress = () => {}) {
     T.skyViolet = tex('skyViolet', () => A.skyPanorama(2048, 1024, 'violet'), { clamp: true, aniso: false });
     T.skyBlue = tex('skyBlue', () => A.skyPanorama(2048, 1024, 'blue'), { clamp: true, aniso: false });
     T.skyDusk = tex('skyDusk', () => A.skyPanorama(2048, 1024, 'dusk'), { clamp: true, aniso: false });
+    T.skyIndigo = tex('skyIndigo', () => A.skyPanorama(2048, 1024, 'indigo'), { clamp: true, aniso: false });
     T.nebula = tex('nebula', () => A.nebulaPanorama(2048, 1024), { clamp: true, aniso: false });
     T.cloud = tex('cloud', () => A.cloudPuff(256, { soft: 0.42 }), { clamp: true });
     T.cloudDark = tex('cloudDark', () => A.cloudPuff(256, { soft: 0.5, tint: [206, 194, 232], seed: 44 }), { clamp: true });
@@ -127,6 +128,32 @@ export async function buildMaterials(onProgress = () => {}) {
     T.crack = tex('crack', () => A.crackSprite(256), { clamp: true });
     T.noise = tex('noise', () => A.noiseRGBA(128), { data: true, nearest: true, mips: false });
     T.phosphor = tex('phosphor', () => A.phosphorMask(256), { data: true, nearest: true, mips: false });
+  });
+
+  await step('growing the cortex', () => {
+    T.cortexFlesh = tex('cortexFlesh', () => A.corticalTissue(1024, { seed: 71 }));
+    T.cortexChill = tex('cortexChill', () => A.corticalTissue(1024, { seed: 88, chill: 0.85 }));
+    T.suture = tex('suture', () => A.sutureStrip(256, 64), { clamp: false });
+    T.accessPanel = tex('accessPanel', () => A.accessPanel(512), { clamp: true });
+    T.ledReadout = tex('ledReadout', () => A.ledReadout(512, 256), { clamp: true, nearest: true });
+    T.insulator = tex('insulator', () => A.insulatorSkin(256));
+    T.speakerCone = tex('speakerCone', () => A.speakerCone(512), { clamp: true });
+    T.knurl = tex('knurl', () => A.knurledChrome(256));
+    T.ribbon = tex('ribbon', () => A.ribbonCable(512, 128));
+  });
+
+  await step('paving the atrium', () => {
+    T.atriumFloor = tex('atriumFloor', () => A.atriumFloor(1024));
+    T.brass = tex('brass', () => A.brushedBrass(256));
+  });
+
+  await step('casting the reliquary', () => {
+    T.reliquaryBoard = tex('reliquaryBoard', () => A.reliquaryBoard(1024));
+    T.mercury = tex('mercury', () => A.mercuryDish(512), { clamp: true });
+    T.oilSlick = tex('oilSlick', () => A.oilSlick(512));
+    T.volcanic = tex('volcanic', () => A.volcanicGround(1024));
+    T.glyph1 = tex('glyph1', () => A.binaryGlyph(128, '1'), { clamp: true });
+    T.glyph0 = tex('glyph0', () => A.binaryGlyph(128, '0'), { clamp: true });
   });
 
   await step('mixing the paints', () => buildMats());
@@ -220,6 +247,40 @@ function buildMats() {
 
   // ---- water -------------------------------------------------------
   M.sea = phong({ color: 0x6472bd, specular: 0xd8e0ff, shininess: 200, transparent: true, opacity: 0.92 });
+
+  /* ---------------- the wired brain ---------------- */
+  // Tissue is wet: a broad, bright specular lobe over a soft diffuse is what
+  // separates "meat" from "painted rock".
+  M.cortexFlesh = phong({ map: T.cortexFlesh, specular: 0xffd8cc, shininess: 26, color: 0xffffff });
+  M.cortexChill = phong({ map: T.cortexChill, specular: 0xcfe0ff, shininess: 34, color: 0xffffff });
+  M.suture = new THREE.MeshPhongMaterial({
+    map: T.suture, specular: 0xffffff, shininess: 190, transparent: true,
+    alphaTest: 0.02, side: THREE.DoubleSide });
+  M.accessPanel = phong({ map: T.accessPanel, specular: 0xffffff, shininess: 150, emissive: 0x181008 });
+  M.ledReadout = new THREE.MeshBasicMaterial({ map: T.ledReadout, toneMapped: false });
+  M.insulator = phong({ map: T.insulator, specular: 0xffffff, shininess: 200, color: 0xffffff });
+  M.speakerCone = phong({ map: T.speakerCone, specular: 0x40444c, shininess: 14 });
+  M.knurl = phong({ map: T.knurl, specular: 0xffffff, shininess: 220, color: 0xdfe4ea });
+  M.ribbon = phong({ map: T.ribbon, specular: 0xffffff, shininess: 90, side: THREE.DoubleSide,
+    emissive: 0x101014 });
+  M.copperPort = phong({ color: 0xc07a44, specular: 0xffe0b0, shininess: 170, emissive: 0x1a0c04 });
+  M.tubeGlass = phong({ color: 0xd8e8f0, specular: 0xffffff, shininess: 250,
+    transparent: true, opacity: 0.30, side: THREE.DoubleSide, depthWrite: false });
+  M.tubeFilament = new THREE.MeshBasicMaterial({ color: 0xff9c2a, toneMapped: false });
+
+  /* ---------------- the atrium ---------------- */
+  M.atriumFloor = phong({ map: T.atriumFloor, specular: 0xc8ccc4, shininess: 150,
+    color: 0xffffff, emissive: 0x04120c });
+  M.brassBrushed = phong({ map: T.brass, specular: 0xfff0bc, shininess: 190, color: 0xffffff });
+
+  /* ---------------- the reliquary ---------------- */
+  M.reliquaryBoard = phong({ map: T.reliquaryBoard, specular: 0x2a4a38, shininess: 80,
+    color: 0xffffff, emissive: 0x0a1410 });
+  M.mercury = phong({ map: T.mercury, specular: 0xffffff, shininess: 300, color: 0xc8ccd4,
+    transparent: true, emissive: 0x0a0c10 });
+  M.oilSlick = phong({ map: T.oilSlick, specular: 0xffffff, shininess: 260, color: 0xffffff,
+    emissive: 0x0c0a14 });
+  M.volcanic = phong({ map: T.volcanic, specular: 0x1a1610, shininess: 6 });
 
   // ---- generic -----------------------------------------------------
   M.white = phong({ color: 0xf2efe8, specular: 0x807a70, shininess: 40 });

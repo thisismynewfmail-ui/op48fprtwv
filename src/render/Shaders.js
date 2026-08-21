@@ -1,4 +1,4 @@
-/* HALCYON — Shader sources
+/* SILICONE DREAMS — Shader sources
  * All GLSL lives here so the passes that use it stay readable.
  */
 
@@ -179,9 +179,14 @@ export const CRT_FRAG = /* glsl */`
   float bayer4(vec2 a){ return bayer2(a*0.5)*0.25 + bayer2(a); }
   float bayer(vec2 p){ return bayer4(p) - 0.46875; }
 
+  // Curvature with compensating overscan: the corner expansion is divided
+  // back out, so bending the image never reveals a black frame around it.
   vec2 barrel(vec2 uv, float k){
     vec2 c = uv*2.0 - 1.0;
     float r2 = dot(c,c);
+    float corner = 1.0 + k*0.32 + k*k*0.20;     // expansion at r2 = 2
+    c /= corner;
+    r2 = dot(c,c);
     c *= 1.0 + k*r2*0.16 + k*k*r2*r2*0.05;
     return c*0.5 + 0.5;
   }
@@ -241,10 +246,13 @@ export const CRT_FRAG = /* glsl */`
     if (uScan > 0.001){
       float px = gl_FragCoord.x;
       float py = gl_FragCoord.y;
-      float triad = 0.92 + 0.08*cos(px*2.0943951);        // 3-pixel phosphor triad
-      float scan  = 0.86 + 0.14*sin(py*3.14159265);
-      float inter = 1.0 - 0.020*step(0.5, fract(py*0.5 + uTime*24.0));
+      float triad = 0.90 + 0.10*cos(px*2.0943951);        // 3-pixel phosphor triad
+      float scan  = 0.84 + 0.16*sin(py*3.14159265);
+      float inter = 1.0 - 0.015*step(0.5, fract(py*0.5 + uTime*24.0));
       col *= mix(1.0, triad*scan*inter, uScan);
+      // put back the light the mask removed, so low settings do not just
+      // darken the frame
+      col *= 1.0 + uScan*0.13;
     }
 
     // --- vignette
@@ -257,9 +265,11 @@ export const CRT_FRAG = /* glsl */`
       col += (n - 0.5) * uGrain * 0.085;
     }
 
-    // --- 16-bit quantisation with an ordered dither
+    // --- colour quantisation with an ordered dither.
+    // The LEVEL COUNT scales with the slider too -- quantising to 32 levels
+    // regardless and only fading the dither noise left permanent banding.
     if (uDither > 0.001){
-      float levels = 32.0;
+      float levels = mix(256.0, 24.0, clamp(uDither, 0.0, 1.0));
       float b = bayer(gl_FragCoord.xy) * uDither;
       col = floor(col*levels + 0.5 + b) / levels;
     }

@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-/* HALCYON — zero-dependency static server.
+/* SILICONE DREAMS — zero-dependency static server.
  * Usage: node serve.js [port]
  */
 const http = require('http');
@@ -33,4 +33,4 @@ http.createServer((req, res) => {
     });
     res.end(data);
   });
-}).listen(PORT, () => console.log(`HALCYON serving http://localhost:${PORT}/`));
+}).listen(PORT, () => console.log(`SILICONE DREAMS serving http://localhost:${PORT}/`));

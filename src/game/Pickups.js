@@ -1,4 +1,4 @@
-/* HALCYON — Pickups and interactables
+/* SILICONE DREAMS — Pickups and interactables
  *
  * Everything the player can walk into or press USE on: ammo, health,
  * weapons on plinths, chronal batteries, and the switches and terminals the

@@ -1,4 +1,4 @@
-/* HALCYON — Post-processing
+/* SILICONE DREAMS — Post-processing
  *
  * Render at a fraction of the display resolution, bloom it, tone-map it,
  * then run the whole frame through a CRT/VHS composite. The low internal
@@ -27,7 +27,14 @@ export class PostFX {
     this.scene = scene;
     this.camera = camera;
 
-    this.composer = new EffectComposer(renderer);
+    // Render at native resolution into a MULTISAMPLED float target. With the
+    // CRT layer turned down, aliasing is what the eye notices first, so the
+    // budget that used to go into a soft 0.7x buffer now goes into 4x MSAA.
+    const size = renderer.getSize(new THREE.Vector2());
+    const rt = new THREE.WebGLRenderTarget(
+      Math.max(2, size.x), Math.max(2, size.y),
+      { type: THREE.HalfFloatType, samples: 4, depthBuffer: true, stencilBuffer: false });
+    this.composer = new EffectComposer(renderer, rt);
     this.composer.setPixelRatio(1);
 
     this.renderPass = new RenderPass(scene, camera);
@@ -126,8 +133,12 @@ export class PostFX {
   resize(w, h) {
     this._w = w; this._h = h;
     const s = clamp(cfg.r_scale, 0.25, 1.0);
-    const rw = Math.max(160, Math.round(w * s));
-    const rh = Math.max(120, Math.round(h * s));
+    // cap the internal buffer so a 4K display does not ask for a 4K MSAA
+    // target; beyond ~2560 the CRT layer hides the difference anyway
+    const maxW = 2560;
+    const scale = Math.min(s, maxW / Math.max(1, w));
+    const rw = Math.max(160, Math.round(w * scale));
+    const rh = Math.max(120, Math.round(h * scale));
     this.renderer.setSize(w, h, false);
     this.composer.setSize(rw, rh);
     this.bloom.setSize(Math.round(rw / 2), Math.round(rh / 2));

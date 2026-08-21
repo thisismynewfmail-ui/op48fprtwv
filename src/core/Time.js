@@ -1,4 +1,4 @@
-/* HALCYON — Time
+/* SILICONE DREAMS — Time
  *
  * The whole game is built around two clocks that disagree.
  *

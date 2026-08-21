@@ -1,4 +1,4 @@
-/* HALCYON — Audio
+/* SILICONE DREAMS — Audio
  *
  * Everything here is synthesised at runtime: no sample files ship with the
  * game. The soundtrack is a slow, detuned mall-muzak generator (Rhodes-ish

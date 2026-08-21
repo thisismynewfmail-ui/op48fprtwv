@@ -1,4 +1,4 @@
-/* HALCYON — Input
+/* SILICONE DREAMS — Input
  * Pointer-lock mouselook, key bindings with rebinding support, and an
  * accumulated mouse delta that is consumed exactly once per frame.
  */
@@ -24,7 +24,8 @@ export const BINDS = {
   slot4:     ['Digit4'],
   console:   ['Backquote'],
   pause:     ['Escape'],
-  score:     ['Tab'],
+  journal:   ['Tab'],
+  examine:   ['KeyG'],
 };
 
 class InputSystem {

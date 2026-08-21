@@ -1,4 +1,4 @@
-/* HALCYON — Game
+/* SILICONE DREAMS — Game
  *
  * The spine. Owns the renderer, the world, the player, the director, and the
  * frame loop that decides — every tick — which systems run on wall time and
@@ -19,8 +19,11 @@ import { Chrono, Manipulator } from './game/Chrono.js';
 import { FX } from './game/Particles.js';
 import { Wraith, Sentinel, Herald, Orb } from './game/Enemies.js';
 import { Director } from './game/Director.js';
+import { Inventory, Examiner, Journal } from './game/Inventory.js';
+import { RELIC_COUNT } from './game/Relics.js';
 import { ChronoBarrier } from './game/Pickups.js';
 import { buildLevel1, ZONE } from './world/Level1.js';
+import { Hub, HUB, BAYS } from './world/Hub.js';
 import { HUD } from './ui/HUD.js';
 import { Menu } from './ui/Menu.js';
 import { Console } from './ui/Console.js';
@@ -53,7 +56,7 @@ export class Game {
     this.renderer.shadowMap.enabled = !!cfg.r_shadows;
     this.renderer.shadowMap.type = THREE.PCFShadowMap;
     this.renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    this.renderer.toneMappingExposure = 0.95;
+    this.renderer.toneMappingExposure = 1.0;
     this.renderer.outputColorSpace = THREE.SRGBColorSpace;
     // the composer issues several passes per frame; reset once, ourselves, so
     // the stats read as "this frame" rather than "the last fullscreen quad"
@@ -93,13 +96,28 @@ export class Game {
     await frame();
     this.level = buildLevel1(this);
 
+    onProgress('opening the atrium');
+    await frame();
+    this.hub = new Hub(this);
+    // home is the atrium, in front of the violet gate
+    const a0 = -Math.PI / 2;
+    const r0 = 44 * Math.cos(Math.PI / 8) - 10;
+    this.hubSpawn = new THREE.Vector3(HUB.x + Math.cos(a0) * r0, HUB.y + 0.4, HUB.z + Math.sin(a0) * r0);
+    this.hubSpawnYaw = Math.PI;
+
     onProgress('winding the clocks');
     await frame();
 
     this.hud = new HUD(this);
     this.menu = new Menu(this);
     this.console = new Console(this);
+    this.inventory = new Inventory(this);
+    this.journal = new Journal(this);
+    this.examiner = new Examiner(this);
     this.director = new Director(this);
+    this.inventory.onChange = () =>
+      this.hud.setCollected(this.inventory.relicCount, RELIC_COUNT, this.inventory.silicone);
+    this.inventory.onChange();
 
     this.player.onDeath = () => this.onPlayerDeath();
     this.player.onDamage = (amt) => {
@@ -197,8 +215,14 @@ export class Game {
     if (this.marks.choirMesh) this.marks.choirMesh.visible = true;
     time.reset();
     time.hour = 11; time.minute = 47; time.hourRate = 0;
-    this.player.respawn(this.spawnPoint.x, this.spawnPoint.y, this.spawnPoint.z, Math.PI);
+    const home = this.hubSpawn || this.spawnPoint;
+    this.player.respawn(home.x, home.y, home.z, this.hubSpawnYaw ?? Math.PI);
     this.player.armour = 0;
+    this.travelPending = null;
+    this.lastGate = null;
+    this.inventory?.deserialize({ items: [], relics: [], silicone: 0 });
+    this.journal && (this.journal.lore = [], this.journal.objectives = [], this.journal.unread = 0);
+    this.hub?.syncVitrines(this.inventory);
     this.weapons.owned = { gnomon: false, pistol: false, repeater: false, manipulator: false };
     this.weapons.ammo = { quartz: 0, static: 0 };
     this.weapons.mags = { pistol: 0, repeater: 0 };
@@ -277,6 +301,54 @@ export class Game {
   }
 
   /* ================================================ WORLD HELPERS */
+
+  /* ================================================ TRAVEL */
+
+  /** Where a gate deposits you, and where you come back to. */
+  static DEST = {
+    temple:    { pos: [1.5, 0.4, 20],      yaw: Math.PI,      env: 'temple' },
+    mirror:    { pos: [0, 1.4, -118],      yaw: Math.PI,      env: 'mirror' },
+    colonnade: { pos: [0, 0.4, -292],      yaw: Math.PI,      env: 'colonnade' },
+    nexus:     { pos: [0, 0.4, -492],      yaw: Math.PI,      env: 'nexus' },
+    cortex:    { pos: [0, 2.0, 980],       yaw: Math.PI,      env: 'cortex' },
+    altar:     { pos: [0, 0.4, 1320],      yaw: Math.PI,      env: 'altar' },
+  };
+
+  travelTo(key) {
+    const d = Game.DEST[key];
+    if (!d) return false;
+    this.postfx.fadeTo(1, 3, 0x000000);
+    this.travelPending = { key, t: 0.42 };
+    audio.play('door', this.player.pos, { vol: 1, ref: 14 });
+    return true;
+  }
+
+  /** Back to the atrium, in front of the gate you came out of. */
+  returnToHub(fromKey) {
+    this.postfx.fadeTo(1, 3, 0x000000);
+    this.travelPending = { key: '__hub', from: fromKey, t: 0.42 };
+    return true;
+  }
+
+  _completeTravel() {
+    const t = this.travelPending;
+    this.travelPending = null;
+    if (t.key === '__hub') {
+      const i = BAYS.findIndex((b) => b.key === t.from);
+      const a = (Math.max(0, i) / 8) * Math.PI * 2 - Math.PI / 2;
+      const r = 44 * Math.cos(Math.PI / 8) - 7;
+      this.player.teleport(HUB.x + Math.cos(a) * r, HUB.y + 0.4, HUB.z + Math.sin(a) * r,
+        Math.atan2(-Math.cos(a), -Math.sin(a)) + Math.PI / 2);
+      this.lastGate = null;
+    } else {
+      const d = Game.DEST[t.key];
+      this.player.teleport(d.pos[0], d.pos[1], d.pos[2], d.yaw);
+      this.lastGate = t.key;
+    }
+    this.player.vel.set(0, 0, 0);
+    this.clearCombat();
+    this.postfx.fadeTo(0, 1.6);
+  }
 
   addCollider(kind, o) {
     const c = kind === 'box' ? box(o.x, o.y, o.z, o.hw, o.hh, o.hd, o)
@@ -455,6 +527,21 @@ export class Game {
 
     const p = this.player;
 
+    /* ---- journal + examination, before anything reads the mouse -- */
+    if (input.hit('journal')) this.journal.toggle();
+    if (this.journal.open) {
+      // the world keeps running behind the book, but nothing takes input
+      this.renderPaused(dtReal);
+      input.endFrame();
+      return;
+    }
+    if (this.examiner.active) {
+      this.examiner.update(dtReal);
+      this.renderPaused(dtReal);
+      input.endFrame();
+      return;
+    }
+
     /* ---- player + weapons on wall time -------------------------- */
     p.update(dtReal);
     this.chrono.update(dtReal);
@@ -492,6 +579,16 @@ export class Game {
 
     this.threatLevel = this.enemies.reduce((n, e) => n + (e.alive && e.isThreat ? 1 : 0), 0);
 
+    /* ---- the atrium's gates ------------------------------------- */
+    if (this.travelPending) {
+      this.travelPending.t -= dtReal;
+      if (this.travelPending.t <= 0) this._completeTravel();
+    } else if (this.hub) {
+      this.hub.refreshGates(this.inventory);
+      const key = this.hub.gateAt(p.pos);
+      if (key) this.travelTo(key);
+    }
+
     /* ---- environment --------------------------------------------- */
     const zone = this.level.zoneAt(p.pos);
     if (zone !== this.currentZone) {
@@ -508,6 +605,7 @@ export class Game {
     this.clouds?.update(dtWorld, this.camera);
     if (this.stars) this.stars.userData.mat.uniforms.uTime.value += dtReal;
     this.level.update(dtWorld, time.now, this);
+    this.hub?.update(dtReal, this);
 
     /* ---- fx + audio + hud ---------------------------------------- */
     this.fx.update(dtWorld, dtReal);
@@ -518,6 +616,20 @@ export class Game {
 
     this.postfx.render();
     input.endFrame();
+  }
+
+  /** Journal / examination: the world is shown but nothing is stepped. */
+  renderPaused(dtReal) {
+    this.renderer.info.reset();
+    this.env.update(dtReal, this.camera, time.dilationAmount);
+    this.sea?.update(dtReal * 0.15, this.camera);
+    this.clouds?.update(dtReal * 0.15, this.camera);
+    this.level?.update(dtReal * 0.15, time.now, this);
+    this.hub?.update(dtReal, this);
+    this.fx.update(0, dtReal);
+    this.postfx.update(dtReal, time.dilationAmount);
+    this.hud.update(dtReal);
+    this.postfx.render();
   }
 
   /** Title screen / paused: keep the world alive but do not simulate it. */

@@ -1,4 +1,4 @@
-/* HALCYON — Developer console
+/* SILICONE DREAMS — Developer console
  * Because a 2003 shooter without a tilde key is not a 2003 shooter.
  */
 import { cfg, DEFAULTS, setCfg, resetCfg } from '../core/Config.js';
@@ -39,7 +39,7 @@ export class Console {
       }
     });
 
-    this.print('HALCYON console. Type `help`.', 'ok');
+    this.print('SILICONE DREAMS console. Type `help`.', 'ok');
   }
 
   toggle(v) {

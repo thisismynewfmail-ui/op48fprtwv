@@ -1,4 +1,4 @@
-/* HALCYON — Chapter One: THE TERMINAL HOUR
+/* SILICONE DREAMS — Chapter One: THE TERMINAL HOUR
  *
  * Four rooms, one for each plate.
  *
@@ -332,12 +332,14 @@ function buildTemple(B, game) {
     sunDir: new THREE.Vector3(0.42, 0.62, -0.66).normalize(),
   });
   const island = pinkIsland({ r: 150, h: 58, seed: 11 });
-  island.position.set(-430, -7, -320);
-  B.add(island);
+  island.position.set(A.x - 430, -7, A.z - 320);
+  keepDynamic(island);
+  g.add(island);                       // in the zone group, so it culls with it
   const island2 = pinkIsland({ r: 96, h: 34, seed: 27, colour: 0xc79ac0 });
-  island2.position.set(520, -7, -280);
+  island2.position.set(A.x + 520, -7, A.z - 280);
   island2.scale.setScalar(0.9);
-  B.add(island2);
+  keepDynamic(island2);
+  g.add(island2);
 
   game.clouds = new CloudField(game.scene, {
     count: 30, radius: 700, yMin: 70, yMax: 260, scale: 110,
@@ -988,6 +990,7 @@ export function buildLevel1(game) {
     { name: 'mirror',    z0: ZONE.B.z + 60, z1: ZONE.B.z - 68 },
     { name: 'colonnade', z0: ZONE.C.z + 72, z1: ZONE.C.z - 70 },
     { name: 'nexus',     z0: ZONE.D.z + 70, z1: ZONE.D.z - 70 },
+    { name: 'atrium',    z0: 760,           z1: 480 },
   ];
 
   const level = {

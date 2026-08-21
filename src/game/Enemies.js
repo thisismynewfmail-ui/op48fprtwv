@@ -1,4 +1,4 @@
-/* HALCYON — Enemies
+/* SILICONE DREAMS — Enemies
  *
  * Three kinds of mask, all descended from the ranks of faces on plate 3.
  *

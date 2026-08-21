@@ -1,4 +1,4 @@
-/* HALCYON — Hero objects
+/* SILICONE DREAMS — Hero objects
  *
  * The things the four plates are actually *about*: the circuit-board faces,
  * the sleeping sun, the runic moon-clock, the Earth on its stair, the

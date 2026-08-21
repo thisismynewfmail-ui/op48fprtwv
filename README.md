@@ -1,4 +1,4 @@
-# HALCYON — Chapter One: *The Terminal Hour*
+# SILICONE DREAMS — Chapter One: *The Terminal Hour*
 
 A first-person shooter for a Source engine that never shipped.
 

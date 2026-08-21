@@ -1,4 +1,4 @@
-/* HALCYON — Noise
+/* SILICONE DREAMS — Noise
  * Small, seeded, *tileable* value/gradient noise. Every texture in the game
  * is painted from these, so they must wrap perfectly or the marble seams show.
  */

@@ -1,4 +1,4 @@
-/* HALCYON — Sky, sea and the horizon
+/* SILICONE DREAMS — Sky, sea and the horizon
  *
  * Four skies, one per plate: the violet dusk over the temple, the
  * photographic blue above the mirror, the nebula of the nexus, and the plain
@@ -9,6 +9,7 @@ import * as THREE from 'three';
 import { SKY_VERT, SKY_FRAG, SEA_VERT, SEA_FRAG } from './Shaders.js';
 import { T } from '../world/Materials.js';
 import { rand, lerp, damp } from '../core/Time.js';
+import { cfg } from '../core/Config.js';
 
 export class SkyDome {
   constructor(scene, opt = {}) {
@@ -308,6 +309,15 @@ export const ZONES = {
     fill: 0x8a76a8, fillI: 0.65,
     music: 'colonnade',
   },
+  atrium: {
+    sky: () => T.skyIndigo,
+    tint: 0xffffff, exposure: 1.0, drift: 0.0016,
+    fog: 0x171334, fogDensity: 0.0075,
+    ambient: 0x8f86bc, ground: 0x4a4468, ambientI: 1.30,
+    sun: 0xffe6c8, sunI: 1.35, sunDir: [0.36, 0.78, 0.51],
+    fill: 0x9a7fd0, fillI: 0.70,
+    music: 'temple',
+  },
   nexus: {
     sky: () => T.nebula,
     tint: 0xffffff, exposure: 1.0, drift: 0.0012,
@@ -335,13 +345,17 @@ export class Environment {
     this.sun = new THREE.DirectionalLight(0xfff0d8, 1.35);
     this.sun.position.set(60, 90, -95);
     this.sun.castShadow = true;
-    this.sun.shadow.mapSize.set(2048, 2048);
-    const d = 44;
+    const RES = [1024, 2048, 3072, 4096][Math.max(0, Math.min(3, cfg.r_shadowRes ?? 2))];
+    this.sun.shadow.mapSize.set(RES, RES);
+    // a tighter frustum spends the same texels over less ground, which is
+    // most of what makes a shadow read as sharp rather than as a smudge
+    const d = 34;
     this.sun.shadow.camera.left = -d; this.sun.shadow.camera.right = d;
     this.sun.shadow.camera.top = d; this.sun.shadow.camera.bottom = -d;
     this.sun.shadow.camera.near = 1; this.sun.shadow.camera.far = 320;
-    this.sun.shadow.bias = -0.0007;
-    this.sun.shadow.normalBias = 0.026;
+    this.sun.shadow.bias = -0.0004;
+    this.sun.shadow.normalBias = 0.018;
+    this.sun.shadow.camera.updateProjectionMatrix();
     scene.add(this.sun);
     scene.add(this.sun.target);
 

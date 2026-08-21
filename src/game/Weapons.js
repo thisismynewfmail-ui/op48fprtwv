@@ -1,4 +1,4 @@
-/* HALCYON — Weapons
+/* SILICONE DREAMS — Weapons
  *
  * Four of them, in the 2003 arrangement: a melee tool you never run out of,
  * an accurate sidearm, a bullet-hose, and the physics gun that is really the
@@ -853,6 +853,8 @@ export class WeaponSystem {
   }
 
   setVisible(v) { this.root.visible = v; }
+  /** Hide just the gun (examination borrows this scene for the held object). */
+  setModelVisible(v) { for (const id of Object.keys(this.models)) this.models[id].visible = v && id === this.current; }
 
   serialize() {
     return { owned: { ...this.owned }, ammo: { ...this.ammo }, mags: { ...this.mags }, current: this.current };

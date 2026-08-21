@@ -1,4 +1,4 @@
-/* HALCYON — Static batching
+/* SILICONE DREAMS — Static batching
  *
  * The level is thousands of small meshes: fluted shafts, acanthus leaves,
  * balusters, keycaps, ivy. Individually they are cheap; collectively they

@@ -1,4 +1,4 @@
-/* HALCYON — Player
+/* SILICONE DREAMS — Player
  *
  * Source-style movement: explicit ground acceleration with a friction pass,
  * air-strafe control, crouch that shrinks the capsule from the top, and a

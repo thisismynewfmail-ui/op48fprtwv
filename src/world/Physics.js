@@ -1,4 +1,4 @@
-/* HALCYON — Physics
+/* SILICONE DREAMS — Physics
  *
  * A small, deterministic collision world. No third-party solver: the level is
  * made of boxes, cylinders and spheres, the player is a capsule, and props are

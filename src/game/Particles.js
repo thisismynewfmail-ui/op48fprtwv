@@ -1,4 +1,4 @@
-/* HALCYON — Particles, decals and debris
+/* SILICONE DREAMS — Particles, decals and debris
  *
  * Pooled everything. Sparks, smoke, glass, sand, chrono motes and bullet
  * decals all come out of fixed-size pools allocated once at load, because a

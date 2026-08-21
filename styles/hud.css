@@ -1,4 +1,4 @@
-/* HALCYON — interface
+/* SILICONE DREAMS — interface
  * Amber-on-black, Verdana-ish, thin rules and hard corners: the 2003
  * Source HUD, redrawn for a game about clocks.
  */
@@ -252,10 +252,15 @@ canvas#view { position: absolute; inset: 0; width: 100%; height: 100%; display: 
               rgba(6,4,12,0.62) 72%, rgba(4,3,8,0.90) 100%);
 }
 #title-logo {
-  font-size: clamp(44px, 9vw, 108px); letter-spacing: clamp(10px, 3vw, 30px);
-  font-weight: 200; color: var(--amber-hot);
+  font-size: clamp(38px, 7.6vw, 92px); letter-spacing: clamp(8px, 2.4vw, 24px);
+  font-weight: 200; color: var(--amber-hot); line-height: 0.94;
+  text-align: center;
   text-shadow: 0 0 60px rgba(255,179,64,0.4), 0 0 140px rgba(200,120,255,0.25);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
+}
+#title-logo .logo-2 {
+  color: var(--violet);
+  text-shadow: 0 0 60px rgba(200,120,255,0.5), 0 0 140px rgba(127,216,255,0.22);
 }
 #title-sub { font-size: 12px; letter-spacing: 8px; color: var(--violet); margin-bottom: 46px; opacity: 0.85; }
 #title-ver { position: absolute; bottom: 16px; right: 20px; font-size: 10px; color: var(--amber-dim); letter-spacing: 2px; }
@@ -331,3 +336,73 @@ canvas#view { position: absolute; inset: 0; width: 100%; height: 100%; display: 
 
 .hint { font-size: 11px; letter-spacing: 2px; color: var(--amber-dim); margin-top: 30px; text-align: center; line-height: 1.9; }
 .hint b { color: var(--amber); font-weight: 400; }
+
+/* =================================================== IMMERSIVE SIM UI */
+
+/* ---- examine ---- */
+#examine {
+  position: absolute; inset: 0; opacity: 0; transition: opacity .22s;
+  background: radial-gradient(ellipse at 62% 50%, rgba(0,0,0,0) 30%, rgba(2,2,6,0.72) 100%);
+}
+#examine.on { opacity: 1; }
+#ex-card {
+  position: absolute; left: 5.5%; top: 50%; transform: translateY(-50%);
+  width: min(380px, 34vw);
+  border-left: 2px solid var(--cyan); padding: 14px 0 14px 18px;
+}
+#ex-name { font-size: 21px; letter-spacing: 3px; color: var(--cyan); margin-bottom: 12px; }
+#ex-lore { font-size: 13px; line-height: 1.75; color: #d8d2e4; letter-spacing: .3px; }
+#ex-hint { margin-top: 20px; font-size: 10px; letter-spacing: 3px; color: var(--amber-dim); }
+
+/* ---- relic banner ---- */
+#relic-banner {
+  position: absolute; left: 50%; top: 22%; transform: translateX(-50%);
+  text-align: center; opacity: 0; pointer-events: none;
+}
+#relic-banner.on { animation: relicIn 4.2s ease-out; }
+#rb-kicker { font-size: 10px; letter-spacing: 6px; color: var(--green); }
+#rb-name { font-size: 27px; letter-spacing: 4px; color: #eafff2; margin-top: 8px;
+           text-shadow: 0 0 34px rgba(111,232,168,0.55); }
+#rb-count { font-size: 11px; letter-spacing: 4px; color: var(--amber-dim); margin-top: 10px; }
+@keyframes relicIn {
+  0% { opacity: 0; transform: translateX(-50%) translateY(14px) }
+  10% { opacity: 1; transform: translateX(-50%) translateY(0) }
+  80% { opacity: 1 } 100% { opacity: 0 }
+}
+
+/* ---- journal ---- */
+#journal {
+  position: absolute; inset: 0; display: none; z-index: 12; pointer-events: auto;
+  background: radial-gradient(ellipse at 50% 40%, rgba(14,9,22,0.90), rgba(2,2,6,0.97));
+  padding: 5vh 7vw; overflow-y: auto;
+}
+#journal.on { display: block; }
+#j-title { font-size: 22px; letter-spacing: 9px; color: var(--amber-hot); margin-bottom: 6px; }
+#j-sub { font-size: 10px; letter-spacing: 4px; color: var(--amber-dim); margin-bottom: 26px; }
+#j-cols { display: grid; grid-template-columns: 1fr 1.35fr; gap: 40px; }
+.j-h { font-size: 11px; letter-spacing: 5px; color: var(--violet);
+       border-bottom: 1px solid rgba(200,159,255,0.22); padding-bottom: 7px; margin-bottom: 14px; }
+.j-obj { font-size: 13px; letter-spacing: .6px; color: var(--amber); margin-bottom: 11px; padding-left: 20px;
+         position: relative; line-height: 1.5; }
+.j-obj::before { content: "○"; position: absolute; left: 0; color: var(--amber-dim); }
+.j-obj.done { color: var(--amber-dim); text-decoration: line-through; }
+.j-obj.done::before { content: "●"; color: var(--green); }
+.j-obj small { display: block; color: var(--amber-dim); font-size: 11px; margin-top: 3px; text-decoration: none; }
+.j-lore { margin-bottom: 18px; }
+.j-lore b { display: block; font-size: 12px; letter-spacing: 2.5px; color: var(--cyan); font-weight: 400; margin-bottom: 5px; }
+.j-lore p { margin: 0; font-size: 12px; line-height: 1.7; color: #cfc8dc; }
+#j-hint { margin-top: 32px; font-size: 10px; letter-spacing: 4px; color: var(--amber-dim); }
+
+/* ---- relic / inventory readout on the HUD ---- */
+#collect {
+  position: absolute; right: 22px; top: 64px; text-align: right;
+  font-size: 10px; letter-spacing: 2.4px; color: var(--amber-dim);
+}
+#collect b { color: var(--green); font-weight: 400; }
+#collect .sil { color: var(--cyan); }
+#j-badge {
+  display: inline-block; min-width: 15px; padding: 0 4px; margin-left: 6px;
+  background: var(--red); color: #120a04; border-radius: 8px;
+  font-size: 9px; text-align: center; line-height: 15px;
+}
+#j-badge.zero { display: none; }

@@ -1,4 +1,4 @@
-/* HALCYON — entry point */
+/* SILICONE DREAMS — entry point */
 import { Game } from './Game.js';
 import { audio } from './core/Audio.js';
 import { input } from './core/Input.js';
@@ -32,7 +32,7 @@ function fatal(err) {
     }
 
     const game = new Game(canvas);
-    window.HALCYON = game;                 // the console needs a handle
+    window.GAME = game;                 // the console needs a handle
 
     await game.boot(progress);
 

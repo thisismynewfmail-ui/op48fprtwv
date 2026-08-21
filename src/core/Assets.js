@@ -1,11 +1,11 @@
-/* HALCYON — Assets
+/* SILICONE DREAMS — Assets
  *
  * Every surface in the game is painted here, at load time, into 2D canvases.
  * Nothing is downloaded. The palettes are lifted directly from the four
  * reference plates: the purple temple, the mirror of faces, the colonnade
  * of hours and the nexus of sun and moon.
  */
-import { ValueNoise, Worley, smooth, clamp01, mix, mulberry32 } from './Noise.js';
+import { ValueNoise, Worley, smooth, clamp01, mix, mulberry32, hsl } from './Noise.js';
 
 const TAU = Math.PI * 2;
 
@@ -763,6 +763,8 @@ export function skyPanorama(w = 2048, h = 1024, mood = 'violet') {
               cloudHi: '#f2f7ff', cloudLo: '#61809e', sun: '#fff4d8', puff: 1.25 },
     dusk:   { top: '#2b2350', mid: '#7a4f8f', horizon: '#e6a07e', low: '#c07a86',
               cloudHi: '#ffdcc4', cloudLo: '#5b3f6b', sun: '#ffd0a0', puff: 0.9 },
+    indigo: { top: '#0b0a24', mid: '#221a4e', horizon: '#4a3a7e', low: '#2e2456',
+              cloudHi: '#8f7fc8', cloudLo: '#191338', sun: '#c8b0ff', puff: 1.05 },
   }[mood] || {};
 
   const grad = g.createLinearGradient(0, 0, 0, h);
@@ -1010,4 +1012,452 @@ export function crackSprite(size = 256, seed = 6) {
   for (let i = 0; i < 9; i++) branch(R, R, (i / 9) * TAU + rnd() * 0.4, R * 0.3, 2.4, 0);
   g.globalAlpha = 1;
   return c;
+}
+
+/* ==================================================================== */
+/*  SILICONE DREAMS — the wired-brain and reliquary asset set            */
+/* ==================================================================== */
+
+/**
+ * Cortical tissue. Two moods, both from plate 1 of the brain references:
+ * `flesh` is the warm pink of an exposed hemisphere, `chill` the blue-grey
+ * of the stapled side that has been dead a while. Sulci are drawn as dark
+ * meandering grooves so the surface reads as folded even before the
+ * geometry displaces it.
+ */
+export function corticalTissue(size = 1024, opt = {}) {
+  const {
+    base = 0xd9a0a0, deep = 0x8f5a60, sheen = 0xf3d0c8,
+    vein = 0xa85a62, seed = 71, chill = 0,
+  } = opt;
+  const n = new ValueNoise(seed, 16);
+  const n2 = new ValueNoise(seed + 13, 32);
+  const w = new Worley(seed + 5, 7);
+  const cB = rgb(base), cD = rgb(deep), cS = rgb(sheen), cV = rgb(vein);
+  const cold = rgb(0x7f8fb4), coldDeep = rgb(0x3f4a6a);
+
+  return paint(size, (u, v) => {
+    // the gyral pattern: worley ridges warped by fbm gives convincing folds
+    const wx = u + 0.22 * (n2.fbm(u, v, 4) - 0.5);
+    const wy = v + 0.22 * (n2.fbm(u + 7, v + 3, 4) - 0.5);
+    const { f1, f2 } = w.sample(((wx % 1) + 1) % 1, ((wy % 1) + 1) % 1);
+    const ridge = clamp01((f2 - f1) * 3.2);          // 0 in a sulcus, 1 on a gyrus
+    const fine = n.fbm(wx, wy, 5);
+
+    let c = mixc(cD, cB, smooth(0.10, 0.62, ridge));
+    c = mixc(c, cS, smooth(0.72, 1.0, ridge) * 0.55);          // wet highlight on the crest
+    // capillaries wandering across the surface
+    const cap = Math.abs(Math.sin((wx * 9 + wy * 5 + fine * 3.4) * TAU));
+    c = mixc(c, cV, smooth(0.93, 1.0, cap) * 0.55 * ridge);
+    // pia mater sheen speckle
+    const sp = (n2.sample(u * 128, v * 128) - 0.5) * 16;
+    c = [c[0] + sp, c[1] + sp, c[2] + sp];
+    if (chill > 0) {
+      const cc = mixc(coldDeep, cold, smooth(0.10, 0.62, ridge));
+      c = mixc(c, cc, chill);
+    }
+    return c;
+  });
+}
+
+/** Surgical staple row: bright steel bars marching along a dark suture line. */
+export function sutureStrip(w = 256, h = 64, opt = {}) {
+  const { staples = 7, metal = '#d8dde4', hi = '#ffffff', lo = '#6a707a', wound = '#5a2f38' } = opt;
+  const c = makeCanvas(w, h), g = c.getContext('2d');
+  g.clearRect(0, 0, w, h);
+  // the incision itself
+  const wg = g.createLinearGradient(0, 0, 0, h);
+  wg.addColorStop(0, 'rgba(0,0,0,0)');
+  wg.addColorStop(0.42, wound); wg.addColorStop(0.5, '#2a1016');
+  wg.addColorStop(0.58, wound); wg.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = wg; g.fillRect(0, 0, w, h);
+  const step = w / staples;
+  for (let i = 0; i < staples; i++) {
+    const x = i * step + step * 0.5;
+    const bw = step * 0.30, bh = h * 0.74;
+    const mg = g.createLinearGradient(x - bw, 0, x + bw, 0);
+    mg.addColorStop(0, lo); mg.addColorStop(0.35, metal);
+    mg.addColorStop(0.5, hi); mg.addColorStop(0.7, metal); mg.addColorStop(1, lo);
+    g.fillStyle = mg;
+    g.fillRect(x - bw / 2, (h - bh) / 2, bw, bh);
+    // crimped ends
+    g.fillStyle = lo;
+    g.fillRect(x - bw * 0.62, (h - bh) / 2, bw * 1.24, bh * 0.12);
+    g.fillRect(x - bw * 0.62, (h + bh) / 2 - bh * 0.12, bw * 1.24, bh * 0.12);
+  }
+  return c;
+}
+
+/**
+ * The ACCESS plate: an orange-and-black hazard-striped screen behind a
+ * chrome bezel, exactly as it sits grafted into the left hemisphere.
+ */
+export function accessPanel(size = 512, opt = {}) {
+  const { label = 'ACCESS', stripeA = '#f0a018', stripeB = '#141014', mirrored = true } = opt;
+  const c = makeCanvas(size), g = c.getContext('2d');
+  g.fillStyle = '#0a0a0c'; g.fillRect(0, 0, size, size);
+
+  // hazard stripes
+  const inset = size * 0.16;
+  const iw = size - inset * 2;
+  g.save();
+  g.beginPath(); g.rect(inset, inset, iw, iw); g.clip();
+  g.fillStyle = stripeB; g.fillRect(inset, inset, iw, iw);
+  g.fillStyle = stripeA;
+  const sw = iw / 7;
+  for (let i = -8; i < 16; i++) {
+    g.save(); g.translate(inset + i * sw, inset); g.rotate(-0.5);
+    g.fillRect(0, -iw, sw * 0.52, iw * 3);
+    g.restore();
+  }
+  // the word, sunk into the stripes
+  g.font = `700 ${size * 0.115}px Verdana, sans-serif`;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  g.save();
+  g.translate(size / 2, size / 2);
+  if (mirrored) g.scale(-1, 1);
+  g.fillStyle = '#0d0b10';
+  g.fillText(label, 0, 0);
+  g.strokeStyle = 'rgba(255,220,150,0.55)'; g.lineWidth = size * 0.004;
+  g.strokeText(label, 0, 0);
+  g.restore();
+  g.restore();
+
+  // chrome bezel
+  const bg = g.createLinearGradient(0, 0, size, size);
+  bg.addColorStop(0, '#f4f6f8'); bg.addColorStop(0.4, '#b8bec6');
+  bg.addColorStop(0.55, '#e8ecf0'); bg.addColorStop(1, '#7c848e');
+  g.strokeStyle = bg; g.lineWidth = inset;
+  g.strokeRect(inset / 2, inset / 2, size - inset, size - inset);
+  // corner screws
+  g.fillStyle = '#9aa2ac';
+  for (const [sx, sy] of [[0.07, 0.07], [0.93, 0.07], [0.07, 0.93], [0.93, 0.93]]) {
+    g.beginPath(); g.arc(size * sx, size * sy, size * 0.022, 0, TAU); g.fill();
+    g.strokeStyle = '#4a5058'; g.lineWidth = size * 0.006;
+    g.beginPath();
+    g.moveTo(size * sx - size * 0.016, size * sy); g.lineTo(size * sx + size * 0.016, size * sy);
+    g.stroke();
+  }
+  // vent slots along the top, as on the reference plate
+  g.fillStyle = '#2a2e34';
+  for (let i = 0; i < 6; i++) g.fillRect(size * (0.30 + i * 0.072), size * 0.075, size * 0.028, size * 0.045);
+  return c;
+}
+
+/** Red LED seven-segment readout — the 0123 / SET / REC ON timer. */
+export function ledReadout(w = 512, h = 256, opt = {}) {
+  const { digits = '0123', on = '#ff2a18', dim = '#3a0806', bg = '#0a0508', label = true } = opt;
+  const c = makeCanvas(w, h), g = c.getContext('2d');
+  g.fillStyle = bg; g.fillRect(0, 0, w, h);
+
+  // seven-segment lamps: [top, tr, br, bottom, bl, tl, mid]
+  const SEG = {
+    '0': [1, 1, 1, 1, 1, 1, 0], '1': [0, 1, 1, 0, 0, 0, 0], '2': [1, 1, 0, 1, 1, 0, 1],
+    '3': [1, 1, 1, 1, 0, 0, 1], '4': [0, 1, 1, 0, 0, 1, 1], '5': [1, 0, 1, 1, 0, 1, 1],
+    '6': [1, 0, 1, 1, 1, 1, 1], '7': [1, 1, 1, 0, 0, 0, 0], '8': [1, 1, 1, 1, 1, 1, 1],
+    '9': [1, 1, 1, 1, 0, 1, 1], ' ': [0, 0, 0, 0, 0, 0, 0], '-': [0, 0, 0, 0, 0, 0, 1],
+  };
+  const dw = w * 0.19, dh = h * 0.58, t = dh * 0.11;
+  const x0 = w * 0.06, y0 = h * 0.16;
+  const seg = (x, y, ww, hh, lit) => {
+    g.fillStyle = lit ? on : dim;
+    if (lit) { g.shadowColor = on; g.shadowBlur = h * 0.06; } else g.shadowBlur = 0;
+    g.fillRect(x, y, ww, hh);
+    g.shadowBlur = 0;
+  };
+  for (let i = 0; i < 4; i++) {
+    const ch = digits[i] || ' ';
+    const s = SEG[ch] || SEG[' '];
+    const x = x0 + i * dw * 1.16, y = y0;
+    seg(x + t, y, dw - t * 2, t, s[0]);                       // top
+    seg(x + dw - t, y + t, t, dh / 2 - t, s[1]);              // top-right
+    seg(x + dw - t, y + dh / 2, t, dh / 2 - t, s[2]);         // bottom-right
+    seg(x + t, y + dh - t, dw - t * 2, t, s[3]);              // bottom
+    seg(x, y + dh / 2, t, dh / 2 - t, s[4]);                  // bottom-left
+    seg(x, y + t, t, dh / 2 - t, s[5]);                       // top-left
+    seg(x + t, y + dh / 2 - t / 2, dw - t * 2, t, s[6]);      // middle
+  }
+  if (label) {
+    g.font = `700 ${h * 0.10}px Verdana, sans-serif`;
+    g.fillStyle = on; g.shadowColor = on; g.shadowBlur = h * 0.05;
+    g.fillText('SET', w * 0.07, h * 0.93);
+    g.fillText('REC ON', w * 0.60, h * 0.93);
+    g.shadowBlur = 0;
+  }
+  return c;
+}
+
+/**
+ * The reliquary monolith's skin: black board with green traces and the
+ * multicoloured component dots strung along them, from plate 2.
+ */
+export function reliquaryBoard(size = 1024, opt = {}) {
+  const { seed = 12, trace = '#1fa85e', traceHi = '#5ff09a', density = 2.6 } = opt;
+  const c = makeCanvas(size), g = c.getContext('2d');
+  g.fillStyle = '#050608'; g.fillRect(0, 0, size, size);
+  const rnd = mulberry32(seed);
+  const S = size / 44;
+
+  // deep glow under the copper, so the traces read as lit from within
+  g.globalAlpha = 0.10; g.fillStyle = trace;
+  for (let i = 0; i < 26 * density; i++) {
+    g.beginPath();
+    g.arc(rnd() * size, rnd() * size, S * (3 + rnd() * 8), 0, TAU); g.fill();
+  }
+  g.globalAlpha = 1;
+
+  // meandering right-angle traces, doubled so they read as bus runs
+  const dots = [];
+  for (let i = 0; i < 90 * density; i++) {
+    let x = Math.floor(rnd() * 44) * S, y = Math.floor(rnd() * 44) * S;
+    const segs = 3 + Math.floor(rnd() * 5);
+    let horiz = rnd() > 0.5;
+    const path = [[x, y]];
+    for (let s = 0; s < segs; s++) {
+      const len = (1 + Math.floor(rnd() * 6)) * S * (rnd() > 0.5 ? 1 : -1);
+      if (horiz) x += len; else y += len;
+      path.push([x, y]);
+      horiz = !horiz;
+    }
+    for (const [wdt, col, a] of [[S * 0.34, '#0d4a2a', 1], [S * 0.17, trace, 1], [S * 0.06, traceHi, 0.8]]) {
+      g.strokeStyle = col; g.lineWidth = wdt; g.globalAlpha = a;
+      g.lineCap = 'round'; g.lineJoin = 'round';
+      g.beginPath(); g.moveTo(path[0][0], path[0][1]);
+      for (let k = 1; k < path.length; k++) g.lineTo(path[k][0], path[k][1]);
+      g.stroke();
+    }
+    g.globalAlpha = 1;
+    for (const p of path) if (rnd() > 0.88) dots.push(p);
+  }
+
+  // the component jewels: saturated dots with a hot core
+  // the plate is overwhelmingly green board with occasional warm jewels
+  const PAL = ['#ff2a2a', '#ff2a2a', '#ff8a1a', '#ffe01a', '#2ad0ff', '#8a4aff',
+               '#2aff6a', '#2aff6a', '#2aff6a'];
+  for (const [x, y] of dots) {
+    const col = PAL[(rnd() * PAL.length) | 0];
+    const r = S * (0.34 + rnd() * 0.34);
+    const rg = g.createRadialGradient(x, y, 0, x, y, r * 2.4);
+    rg.addColorStop(0, '#ffffff'); rg.addColorStop(0.25, col);
+    rg.addColorStop(1, 'rgba(0,0,0,0)');
+    g.fillStyle = rg;
+    g.beginPath(); g.arc(x, y, r * 2.4, 0, TAU); g.fill();
+    g.fillStyle = col;
+    g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill();
+  }
+  return c;
+}
+
+/** Liquid-metal dish: the mercury pool set into the monolith's top face. */
+export function mercuryDish(size = 512) {
+  const n = new ValueNoise(303, 16);
+  const n2 = new ValueNoise(77, 64);
+  return paint(size, (u, v) => {
+    const dx = u - 0.5, dy = v - 0.5;
+    const d = Math.sqrt(dx * dx + dy * dy) * 2;
+    if (d > 1) return [6, 6, 9, 0];
+    // slow ripples plus a fine tremble
+    const r = n.fbm(u, v, 5) * 0.7 + n2.fbm(u, v, 4, 64) * 0.3;
+    const dome = Math.sqrt(Math.max(0, 1 - d * d));
+    const l = 152 + r * 78 + dome * 54;
+    // mercury is faintly warm in the highlight, cold in the trough
+    const warm = smooth(0.55, 1.0, r);
+    const col = mixc([l * 0.92, l * 0.94, l], [l, l * 0.97, l * 0.90], warm);
+    const edge = 1 - smooth(0.90, 1.0, d);
+    return [col[0], col[1], col[2], 255 * edge];
+  });
+}
+
+/** Iridescent oil-slick shell for the levitating relic brain. */
+export function oilSlick(size = 512, opt = {}) {
+  const { seed = 909, bands = 1.35 } = opt;
+  const n = new ValueNoise(seed, 4);
+  const n2 = new ValueNoise(seed + 41, 8);
+  return paint(size, (u, v) => {
+    const f = n.fbm(u, v, 3, 4);
+    const t = n.turb(u, v, 2, 4);
+    // thin-film interference: hue sweeps with the film "thickness" field.
+    // The plate's palette is a red/gold/blue/black sweep, so bias the hue
+    // band toward the warm end and let blue arrive as the deep phase.
+    const hue = (0.02 + f * bands + t * 0.55) % 1;
+    const [r, g2, b] = hsl(hue, 0.98, 0.52 + f * 0.30);
+    // a chrome sheen laid over the top, which is what keeps it metallic
+    const sheen = Math.pow(smooth(0.42, 1.0, f * 0.6 + n2.fbm(u, v, 3, 8) * 0.4), 2.0);
+    const k = 0.80 + smooth(0.20, 0.90, f) * 0.65;
+    return [
+      Math.min(255, r * k + sheen * 190),
+      Math.min(255, g2 * k + sheen * 195),
+      Math.min(255, b * k + sheen * 205),
+    ];
+  });
+}
+
+/** Dark volcanic ground for the altar plain. */
+export function volcanicGround(size = 1024, opt = {}) {
+  const { seed = 44 } = opt;
+  const n = new ValueNoise(seed, 16);
+  const n2 = new ValueNoise(seed + 9, 64);
+  const w = new Worley(seed + 3, 10);
+  return paint(size, (u, v) => {
+    const f = n.fbm(u, v, 6);
+    const { f1, f2 } = w.sample(u, v);
+    const crack = 1 - smooth(0.0, 0.045, f2 - f1);
+    let c = mixc(rgb(0x2a2018), rgb(0x6a5842), smooth(0.28, 0.78, f));
+    c = mixc(c, rgb(0x0d0a08), crack * 0.8);
+    c = mixc(c, rgb(0x8f7a58), smooth(0.80, 1.0, f) * 0.5);
+    const g2 = (n2.sample(u * 128, v * 128) - 0.5) * 22;
+    return [c[0] + g2, c[1] + g2, c[2] + g2];
+  });
+}
+
+/** Rainbow IDE ribbon: the spectrum cable arcing out of the connector. */
+export function ribbonCable(w = 512, h = 128, opt = {}) {
+  const { lanes = 20 } = opt;
+  const c = makeCanvas(w, h), g = c.getContext('2d');
+  for (let i = 0; i < lanes; i++) {
+    const t = i / (lanes - 1);
+    const [r, g2, b] = hsl(t * 0.92, 0.95, 0.55);
+    const y = (i / lanes) * h, lh = h / lanes;
+    const lg = g.createLinearGradient(0, y, 0, y + lh);
+    lg.addColorStop(0, `rgb(${r * 0.55 | 0},${g2 * 0.55 | 0},${b * 0.55 | 0})`);
+    lg.addColorStop(0.42, `rgb(${r | 0},${g2 | 0},${b | 0})`);
+    lg.addColorStop(0.6, `rgb(${Math.min(255, r * 1.3) | 0},${Math.min(255, g2 * 1.3) | 0},${Math.min(255, b * 1.3) | 0})`);
+    lg.addColorStop(1, `rgb(${r * 0.45 | 0},${g2 * 0.45 | 0},${b * 0.45 | 0})`);
+    g.fillStyle = lg;
+    g.fillRect(0, y, w, lh + 0.5);
+  }
+  return c;
+}
+
+/** Chrome numeral sheet — the 1s and 0s that rise off the dish. */
+export function binaryGlyph(size = 128, ch = '1') {
+  const c = makeCanvas(size), g = c.getContext('2d');
+  g.clearRect(0, 0, size, size);
+  g.font = `700 ${size * 0.86}px Georgia, "Times New Roman", serif`;
+  g.textAlign = 'center'; g.textBaseline = 'middle';
+  const lg = g.createLinearGradient(0, size * 0.1, 0, size * 0.9);
+  lg.addColorStop(0, '#ffffff'); lg.addColorStop(0.32, '#c8d0d8');
+  lg.addColorStop(0.5, '#8a94a0'); lg.addColorStop(0.62, '#f0f4f8');
+  lg.addColorStop(1, '#6a747e');
+  g.fillStyle = lg;
+  g.fillText(ch, size / 2, size * 0.52);
+  g.lineWidth = size * 0.022;
+  g.strokeStyle = 'rgba(255,255,255,0.65)';
+  g.strokeText(ch, size / 2, size * 0.52);
+  return c;
+}
+
+/** Ribbed ceramic insulator stack for the Tesla pylons. */
+export function insulatorSkin(size = 256, opt = {}) {
+  const { ribs = 7, pale = '#e8e2f4', deep = '#7a6a9a', rim = '#fdfbff' } = opt;
+  const c = makeCanvas(size), g = c.getContext('2d');
+  const lg = g.createLinearGradient(0, 0, 0, size);
+  for (let i = 0; i < ribs; i++) {
+    const t = i / ribs;
+    lg.addColorStop(t, deep);
+    lg.addColorStop(t + 0.5 / ribs, pale);
+    lg.addColorStop(Math.min(1, t + 0.62 / ribs), rim);
+  }
+  g.fillStyle = lg; g.fillRect(0, 0, size, size);
+  // vertical shading so the cylinder reads round
+  const sg = g.createLinearGradient(0, 0, size, 0);
+  sg.addColorStop(0, 'rgba(0,0,0,0.42)'); sg.addColorStop(0.34, 'rgba(255,255,255,0.18)');
+  sg.addColorStop(0.62, 'rgba(255,255,255,0.05)'); sg.addColorStop(1, 'rgba(0,0,0,0.5)');
+  g.fillStyle = sg; g.fillRect(0, 0, size, size);
+  return c;
+}
+
+/** Speaker cone: concentric corrugations around a dust cap. */
+export function speakerCone(size = 512) {
+  const n = new ValueNoise(19, 64);
+  return paint(size, (u, v) => {
+    const dx = u - 0.5, dy = v - 0.5;
+    const d = Math.sqrt(dx * dx + dy * dy) * 2;
+    if (d > 1) return [8, 8, 10, 255];
+    const ring = 0.5 + 0.5 * Math.cos(d * 46);
+    let l = 18 + ring * 26 + (1 - d) * 24;
+    if (d < 0.30) l = 30 + (0.30 - d) * 90;                 // dust cap
+    if (d > 0.86) l = 40 + ring * 22;                        // surround
+    const grain = (n.sample(u * 64, v * 64) - 0.5) * 10;
+    return [l * 1.02 + grain, l * 0.98 + grain, l * 1.06 + grain];
+  });
+}
+
+/** Knurled chrome for the control knobs. */
+export function knurledChrome(size = 256, teeth = 48) {
+  return paint(size, (u, v) => {
+    const k = 0.5 + 0.5 * Math.cos(u * teeth * TAU);
+    const shade = 0.30 + 0.70 * Math.pow(k, 0.55);
+    const band = v < 0.18 || v > 0.82 ? 0.55 : 1.0;
+    const l = 210 * shade * band;
+    return [l * 0.98, l, l * 1.05];
+  });
+}
+
+/**
+ * The Atrium floor: the whole game's thesis in one tile. Classical marble
+ * checkerboard, but the grout between the tiles is a routed circuit, and it
+ * is lit. Silicon growing through the temple.
+ */
+export function atriumFloor(size = 1024, opt = {}) {
+  const { cells = 2, trace = '#3fe89a', hot = '#c8ffe4', seed = 21 } = opt;
+  const pale = marble(size / cells, { base: 0xe8e4dc, vein: 0xa8a49c, vein2: 0xfffdf8, seed, veinFreq: 1, turbAmp: 1.3 });
+  const dark = marble(size / cells, { base: 0x1c1a24, vein: 0x0c0b12, vein2: 0x585070, seed: seed + 9, veinFreq: 2, turbAmp: 2.1, sharp: 0.46 });
+  const c = checkerOf(pale, dark, size, { cells, groutW: 0.010, grout: 'rgba(0,0,0,0.55)' });
+  const g = c.getContext('2d');
+  const rnd = mulberry32(seed * 7);
+  const cs = size / cells;
+
+  // circuitry running in the grout channels, with vias at the crossings
+  g.lineCap = 'square';
+  for (let pass = 0; pass < 2; pass++) {
+    g.strokeStyle = pass ? hot : trace;
+    g.lineWidth = pass ? size * 0.0022 : size * 0.0062;
+    g.globalAlpha = pass ? 0.95 : 0.85;
+    for (let i = 0; i <= cells; i++) {
+      g.beginPath(); g.moveTo(i * cs, 0); g.lineTo(i * cs, size); g.stroke();
+      g.beginPath(); g.moveTo(0, i * cs); g.lineTo(size, i * cs); g.stroke();
+    }
+  }
+  g.globalAlpha = 1;
+  // spurs breaking off the grout into the tiles, terminating in pads
+  for (let i = 0; i < 40; i++) {
+    const horiz = rnd() > 0.5;
+    const lane = Math.floor(rnd() * (cells + 1)) * cs;
+    const along = rnd() * size;
+    const len = cs * (0.10 + rnd() * 0.34);
+    const dir = rnd() > 0.5 ? 1 : -1;
+    const x0 = horiz ? along : lane, y0 = horiz ? lane : along;
+    const x1 = horiz ? along : lane + len * dir, y1 = horiz ? lane + len * dir : along;
+    g.strokeStyle = trace; g.lineWidth = size * 0.0034;
+    g.beginPath(); g.moveTo(x0, y0); g.lineTo(x1, y1); g.stroke();
+    g.fillStyle = hot;
+    g.beginPath(); g.arc(x1, y1, size * 0.0042, 0, TAU); g.fill();
+  }
+  // vias at every grout intersection
+  for (let a = 0; a <= cells; a++) for (let b = 0; b <= cells; b++) {
+    const x = a * cs, y = b * cs;
+    g.fillStyle = '#0a0c10';
+    g.beginPath(); g.arc(x, y, size * 0.010, 0, TAU); g.fill();
+    g.fillStyle = hot;
+    g.beginPath(); g.arc(x, y, size * 0.0055, 0, TAU); g.fill();
+  }
+  return c;
+}
+
+/** Brushed brass for the orrery. */
+export function brushedBrass(size = 256, opt = {}) {
+  const { base = 0xc8a24a, seed = 3 } = opt;
+  const n = new ValueNoise(seed, 128);
+  const c0 = rgb(base);
+  return paint(size, (u, v) => {
+    // fine circumferential brushing
+    const brush = (n.sample(u * 256, v * 3) - 0.5) * 34;
+    const sweep = 0.80 + 0.20 * Math.sin(v * TAU * 1.0);
+    return [
+      clamp01((c0[0] * sweep + brush) / 255) * 255,
+      clamp01((c0[1] * sweep + brush) / 255) * 255,
+      clamp01((c0[2] * sweep + brush * 0.7) / 255) * 255,
+    ];
+  });
 }

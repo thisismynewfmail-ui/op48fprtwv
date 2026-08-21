@@ -1,4 +1,4 @@
-/* HALCYON — Director
+/* SILICONE DREAMS — Director
  *
  * The level's script. Objectives, gates, encounter waves, checkpoints and
  * the small scripted beats that make a corridor feel authored: the terminal
@@ -19,7 +19,7 @@ import { M } from '../world/Materials.js';
 /* --------------------------------------------------- terminal screens */
 
 const BOOT_LINES = [
-  'HALCYON SYSTEMS BIOS v2.03',
+  'SILICONE DREAMS BIOS v2.03',
   'Copyright (C) 1997-2003',
   '',
   'Memory Test : 65536K OK',
@@ -101,11 +101,13 @@ export class Director {
       player: g.player.serialize(),
       weapons: g.weapons.serialize(),
       chrono: g.chrono.serialize(),
+      inventory: g.inventory.serialize(),
+      journal: g.journal.serialize(),
       flags: { ...this.flags },
       counters: { ...this.counters },
       hour: g.time.hour, minute: g.time.minute,
     };
-    try { localStorage.setItem('halcyon.save.v1', JSON.stringify(this.checkpoint)); } catch (e) { /* ignore */ }
+    try { localStorage.setItem('silicone.save.v1', JSON.stringify(this.checkpoint)); } catch (e) { /* ignore */ }
     g.hud?.notify('AUTOSAVE');
   }
 
@@ -119,6 +121,9 @@ export class Director {
     g.player.health = Math.max(35, c.player.health);
     g.weapons.deserialize(c.weapons);
     g.chrono.deserialize(c.chrono);
+    g.inventory.deserialize(c.inventory);
+    g.journal.deserialize(c.journal);
+    g.hub?.syncVitrines(g.inventory);
     this.flags = { ...c.flags };
     this.counters = { ...c.counters };
     g.time.hour = c.hour; g.time.minute = c.minute;
@@ -128,10 +133,10 @@ export class Director {
   }
 
   static hasSave() {
-    try { return !!localStorage.getItem('halcyon.save.v1'); } catch (e) { return false; }
+    try { return !!localStorage.getItem('silicone.save.v1'); } catch (e) { return false; }
   }
   static readSave() {
-    try { return JSON.parse(localStorage.getItem('halcyon.save.v1')); } catch (e) { return null; }
+    try { return JSON.parse(localStorage.getItem('silicone.save.v1')); } catch (e) { return null; }
   }
 
   advance(to) {

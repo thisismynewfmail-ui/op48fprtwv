@@ -1,4 +1,4 @@
-/* HALCYON — HUD
+/* SILICONE DREAMS — HUD
  * Amber numerals in the bottom corners, closed captions, an objective rail,
  * and a clock that is always visible because the clock is the subject.
  */
@@ -42,6 +42,20 @@ export class HUD {
     this.dmgVig = $('vignette-dmg');
     this.fps = $('fps');
     this.slots = {};
+
+    // immersive-sim surfaces
+    this.examine = $('examine');
+    this.exName = $('ex-name');
+    this.exLore = $('ex-lore');
+    this.relicBan = $('relic-banner');
+    this.rbName = $('rb-name');
+    this.rbCount = $('rb-count');
+    this.journalEl = $('journal');
+    this.jObjectives = $('j-objectives');
+    this.jLore = $('j-lore');
+    this.jBadge = $('j-badge');
+    this.cRelics = $('c-relics');
+    this.cSil = $('c-sil');
 
     this.capList = [];
     this.noticeList = [];
@@ -117,6 +131,45 @@ export class HUD {
     this.boss.classList.add('on');
     this.bossName.textContent = name;
     this.bossBar.style.width = `${clamp(frac, 0, 1) * 100}%`;
+  }
+
+  /* ---------------------------------------------- immersive sim UI */
+
+  showExamine(name, lore) {
+    this.exName.textContent = name;
+    this.exLore.textContent = lore;
+    this.examine.classList.add('on');
+  }
+  hideExamine() { this.examine.classList.remove('on'); }
+
+  relicBanner(name, got, total) {
+    this.rbName.textContent = name;
+    this.rbCount.textContent = `${got} OF ${total} RECOVERED`;
+    this.relicBan.classList.remove('on');
+    void this.relicBan.offsetWidth;
+    this.relicBan.classList.add('on');
+  }
+
+  setJournalBadge(n) {
+    this.jBadge.textContent = n;
+    this.jBadge.classList.toggle('zero', !n);
+  }
+
+  showJournal(open, journal) {
+    this.journalEl.classList.toggle('on', open);
+    if (!open) return;
+    this.jObjectives.innerHTML = journal.objectives.length
+      ? journal.objectives.map((o) =>
+          `<div class="j-obj${o.done ? ' done' : ''}">${o.text}${o.sub ? `<small>${o.sub}</small>` : ''}</div>`).join('')
+      : '<div class="j-obj">No standing objectives.</div>';
+    this.jLore.innerHTML = journal.lore.length
+      ? journal.lore.map((e) => `<div class="j-lore"><b>${e.title}</b><p>${e.body}</p></div>`).join('')
+      : '<div class="j-lore"><p>Nothing recorded yet.</p></div>';
+  }
+
+  setCollected(relics, total, silicone) {
+    this.cRelics.textContent = `${relics} / ${total}`;
+    this.cSil.textContent = silicone;
   }
 
   hitMarker(crit) {

@@ -1,4 +1,4 @@
-/* HALCYON — Menus
+/* SILICONE DREAMS — Menus
  * Title, pause, options, death and end-of-chapter screens.
  */
 import { cfg, DEFAULTS, setCfg, resetCfg } from '../core/Config.js';
@@ -21,6 +21,9 @@ const SLIDERS = [
     ['r_dither', 'Colour dither', 0, 1, 0.05],
     ['r_vignette', 'Vignette', 0, 1, 0.05],
     ['r_viewbob', 'View bob', 0, 1.5, 0.05],
+    ['r_shadowRes', 'Shadow quality (restart)', 0, 3, 1,
+      (v) => ['LOW', 'MEDIUM', 'HIGH', 'ULTRA'][v | 0]],
+    ['r_detail', 'World detail (restart)', 0.5, 1.5, 0.25],
   ]],
   ['MOUSE', [
     ['m_sensitivity', 'Sensitivity', 0.0004, 0.008, 0.0001, (v) => (v * 1000).toFixed(1)],
@@ -42,6 +45,7 @@ const TOGGLES = [
   ['crosshair', 'Crosshair'],
   ['r_shadows', 'Shadows'],
   ['r_reflections', 'Mirror reflections (restart)'],
+  ['r_lightShafts', 'Light shafts'],
 ];
 
 export class Menu {

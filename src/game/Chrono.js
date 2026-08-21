@@ -1,4 +1,4 @@
-/* HALCYON — The Chronometer
+/* SILICONE DREAMS — The Chronometer
  *
  * Three powers, one shared pool:
  *
