@@ -201,8 +201,11 @@ export class Director {
       {
         name: 'wake',
         enter: (g, d) => {
-          g.env.apply('temple', true);
-          g.player.teleport(g.spawnPoint.x, g.spawnPoint.y, g.spawnPoint.z, Math.PI);
+          // You wake in the hub. Everything else in the level is somewhere
+          // you choose to go from here.
+          const h = g.hubSpawn || g.spawnPoint;
+          g.env.apply('atrium', true);
+          g.player.teleport(h.x, h.y, h.z, g.hubSpawnYaw ?? Math.PI);
           g.player.frozen = true;
           g.postfx.fadeTo(1, 4, 0x000000);
           g.time.hour = 11; g.time.minute = 47;
@@ -210,16 +213,59 @@ export class Director {
           d.screenLines = [];
           d.screenScroll = 0;
           audio.startMusic('temple');
-          g.hud?.chapterCard('CHAPTER ONE', 'THE TERMINAL HOUR');
+          g.hud?.chapterCard('LEVEL ONE', 'THE ATRIUM OF SLEEPING MACHINES');
         },
         update: (g, d, dt) => {
           if (d.stageT > 1.2) g.postfx.fadeTo(0, 0.5);
           if (d.stageT > 2.6 && !d.flags.woke) {
             d.flags.woke = true;
             g.player.frozen = false;
-            d.say('You are on the plaza again. The sea has not moved in four thousand iterations.', 6);
+            d.say('You are in the atrium again. The orrery is still turning. It is still 11:47.', 6);
           }
           if (d.stageT > 4.0) d.advance();
+        },
+      },
+
+      /* ------------------------------------------------ 0b : THE ATRIUM */
+      {
+        name: 'atrium', checkpoint: true,
+        enter: (g, d) => {
+          d.setObjective('LEARN THE ATRIUM', 'Six gates. One of them is unlocked.');
+          d.say('Eight bays. Six gates out, a hall for what you bring back, and a bench to work at.', 7);
+          g.journal.addObjective('atrium', 'Find your way out of the atrium', 'The violet gate is open.');
+          g.journal.addLore('The Atrium',
+            'You did not build this room and you do not remember arriving in it. The vitrines in the south hall are labelled in your handwriting, and all of them are empty.');
+
+          // the Gnomon waits on the workbench
+          const wb = g.hub?.marks?.workbench;
+          if (wb) {
+            const pk = d.addPickup({
+              kind: 'weapon', weapon: 'gnomon', label: 'THE GNOMON',
+              pos: new THREE.Vector3(wb.x, wb.y + 0.9, wb.z), radius: 2.2,
+              onTake: () => d.say('The gnomon. Brass, and sharper than it needs to be.', 5),
+            });
+            const blade = new THREE.Group();
+            const shape = new THREE.Shape();
+            shape.moveTo(0, 0); shape.lineTo(0.7, 0); shape.lineTo(0, 0.48); shape.closePath();
+            const m = new THREE.Mesh(new THREE.ExtrudeGeometry(shape, {
+              depth: 0.04, bevelEnabled: true, bevelSize: 0.01, bevelThickness: 0.01, bevelSegments: 1 }), M.gold);
+            m.position.set(-0.24, -0.16, 0);
+            blade.add(m);
+            blade.rotation.z = 0.3;
+            pk.attach(blade, 0.35);
+          }
+          // the save shrine
+          const ss = g.hub?.marks?.saveShrine;
+          if (ss) {
+            d.addUse({
+              pos: ss.clone(), radius: 3.0, label: 'WIND THE CHRONOMETER', once: false,
+              onUse: () => { d.saveCheckpoint('atrium'); audio.sfx_chime(1, 0, 0, { freq: 880 }); },
+            });
+          }
+        },
+        update: (g, d, dt) => {
+          // leaving through any gate begins the level proper
+          if (g.lastGate) { g.journal.completeObjective('atrium'); d.advance(); }
         },
       },
 

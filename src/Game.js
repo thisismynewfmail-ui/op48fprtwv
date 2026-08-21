@@ -20,10 +20,13 @@ import { FX } from './game/Particles.js';
 import { Wraith, Sentinel, Herald, Orb } from './game/Enemies.js';
 import { Director } from './game/Director.js';
 import { Inventory, Examiner, Journal } from './game/Inventory.js';
-import { RELIC_COUNT } from './game/Relics.js';
+import { RELIC_COUNT, RELIC_BY_ID, relicModel, RELICS } from './game/Relics.js';
+import { Reliquary } from './world/Reliquary.js';
 import { ChronoBarrier } from './game/Pickups.js';
 import { buildLevel1, ZONE } from './world/Level1.js';
 import { Hub, HUB, BAYS } from './world/Hub.js';
+import { buildCortex, CORTEX } from './world/Cortex.js';
+import { buildAltar, ALTAR } from './world/Altar.js';
 import { HUD } from './ui/HUD.js';
 import { Menu } from './ui/Menu.js';
 import { Console } from './ui/Console.js';
@@ -41,6 +44,8 @@ export class Game {
     this.triggers = [];
     this.barriers = [];
     this.threatLevel = 0;
+    this.worldRelics = [];
+    this.cullables = [];
     this.currentZone = 'temple';
     this.paused = false;
     this.started = false;
@@ -96,9 +101,19 @@ export class Game {
     await frame();
     this.level = buildLevel1(this);
 
+    onProgress('grafting the cortex');
+    await frame();
+    this.cortex = buildCortex(this);
+
+    onProgress('raising the altar');
+    await frame();
+    this.altar = buildAltar(this);
+
     onProgress('opening the atrium');
     await frame();
     this.hub = new Hub(this);
+    this.placeRelics();
+
     // home is the atrium, in front of the violet gate
     const a0 = -Math.PI / 2;
     const r0 = 44 * Math.cos(Math.PI / 8) - 10;
@@ -310,8 +325,8 @@ export class Game {
     mirror:    { pos: [0, 1.4, -118],      yaw: Math.PI,      env: 'mirror' },
     colonnade: { pos: [0, 0.4, -292],      yaw: Math.PI,      env: 'colonnade' },
     nexus:     { pos: [0, 0.4, -492],      yaw: Math.PI,      env: 'nexus' },
-    cortex:    { pos: [0, 2.0, 980],       yaw: Math.PI,      env: 'cortex' },
-    altar:     { pos: [0, 0.4, 1320],      yaw: Math.PI,      env: 'altar' },
+    cortex:    { pos: [0, 21.5, 1032],     yaw: Math.PI,      env: 'cortex' },
+    altar:     { pos: [0, 1.0, 1404],      yaw: Math.PI,      env: 'altar' },
   };
 
   travelTo(key) {
@@ -350,6 +365,39 @@ export class Game {
     this.postfx.fadeTo(0, 1.6);
   }
 
+  /**
+   * Section visibility. The sections sit on their own islands of space
+   * hundreds of metres apart, and things like the Cortex's corona shell are
+   * big enough to be seen from the next section along. Switch whole roots off
+   * by distance — it is both the fix for that and most of the frame budget.
+   */
+  updateSectionVisibility(pos) {
+    const far = 260;
+    const set = (root, z) => { if (root) root.visible = Math.abs(pos.z - z) < far; };
+    set(this.hub?.root, HUB.z);
+    set(this.cortex?.root, CORTEX.z);
+    set(this.altar?.root, ALTAR.z);
+    // the vitrines live on the scene root, so travel with the hub's flag
+    if (this.hub) {
+      const on = this.hub.root.visible;
+      for (const rel of this.hub.vitrines.values()) rel.root.visible = on;
+    }
+    // Point lights parented to the scene root are never culled by the zone
+    // groups, and three counts every visible light against every Phong
+    // fragment. Eighty-five of them across six sections is the single
+    // largest cost in the frame, so cull them by distance explicitly.
+    for (const c of this.cullables) {
+      const vis = Math.abs(pos.z - c.z) < c.range && Math.abs(pos.x - c.x) < c.range;
+      if (c.obj.visible !== vis) c.obj.visible = vis;
+    }
+  }
+
+  /** Register a scene-root object to be switched off when far away. */
+  registerCullable(obj, x, z, range = 90) {
+    this.cullables.push({ obj, x, z, range });
+    return obj;
+  }
+
   addCollider(kind, o) {
     const c = kind === 'box' ? box(o.x, o.y, o.z, o.hw, o.hh, o.hd, o)
       : kind === 'cyl' ? cyl(o.x, o.y, o.z, o.r, o.h, o)
@@ -384,6 +432,87 @@ export class Game {
     for (const e of this.enemies) {
       if (!e.alive) continue;
       if (e.position.distanceTo(pos) < radius) { e.wake(); e.awareness = 1; }
+    }
+  }
+
+  /** Where each relic waits. Roughly one per section, plus rewards. */
+  placeRelics() {
+    const P = [
+      // --- the temple
+      ['venus',  2.0, 1.2, -9.0],
+      ['gnomon', -12.0, 1.2, 6.0],
+      // --- the mirror
+      ['shard',   -22, 2.2, -150],
+      ['ampoule',  24, 2.2, -186],
+      // --- the colonnade
+      ['bob',      -5, 1.2, -382],
+      ['sand',      5, 1.2, -330],
+      // --- the nexus
+      ['hand',    -11, 1.0, -512],
+      ['key',       9, 1.0, -529],
+      // --- the cortex
+      ['triode',  CORTEX.x + 2,  CORTEX.y + 21, CORTEX.z + 40],
+      ['staple',  CORTEX.x - 12, CORTEX.y + 21, CORTEX.z + 18],
+      ['ribbon',  CORTEX.x + 22, CORTEX.y + 33, CORTEX.z - 42],
+      ['coil',    CORTEX.x + 30, CORTEX.y + 33, CORTEX.z - 50],
+      ['access',  CORTEX.x + 18, CORTEX.y + 33, CORTEX.z - 48],
+      ['timer',   CORTEX.x + 14, CORTEX.y + 21, CORTEX.z - 8],
+      ['speaker', CORTEX.x - 36, CORTEX.y + 21, CORTEX.z + 26],
+      // --- the altar
+      ['dreamer', ALTAR.x, ALTAR.y + 2.6, ALTAR.z + 14],
+    ];
+    for (const [id, x, y, z] of P) this.spawnRelic(id, x, y, z);
+  }
+
+  /* ================================================ RELIC PICKUPS */
+
+  /**
+   * Place a relic in the world. It appears exactly as it will appear in the
+   * Vitrine Hall — same monolith, same mercury, same rising binary — so the
+   * player reads "this is a keepable thing" before they are close enough to
+   * see what it is.
+   */
+  spawnRelic(id, x, y, z, opt = {}) {
+    const def = RELIC_BY_ID[id];
+    if (!def) return null;
+    const model = relicModel(id);
+    const bb = new THREE.Box3().setFromObject(model);
+    const size = bb.getSize(new THREE.Vector3());
+    const longest = Math.max(size.x, size.y, size.z) || 1;
+    model.scale.multiplyScalar(0.7 / longest);
+
+    const rel = new Reliquary(this.scene, {
+      pos: new THREE.Vector3(x, y, z),
+      w: opt.w ?? 1.4, h: opt.h ?? 1.25, hover: 1.05,
+      glow: opt.glow ?? 0x3fe89a, payload: model, detail: 0.8,
+      lights: 'minimal',
+    });
+    rel.setLabel(def.name);
+    const rec = { id, rel, pos: new THREE.Vector3(x, y, z), taken: false, def };
+    this.worldRelics.push(rec);
+    this.registerCullable(rel.root, x, z, 70);
+    this.addCollider('cyl', { x, y, z, r: 0.95, h: opt.h ?? 1.25, surface: 'metal' });
+    return rec;
+  }
+
+  updateRelicPickups(realDt) {
+    const p = this.player;
+    for (const r of this.worldRelics) {
+      if (r.rel.root.visible) r.rel.update(realDt, this.camera, realDt);
+      if (r.taken) continue;
+      if (p.pos.distanceTo(r.pos) < 2.6) {
+        this.setUsePrompt(`TAKE ${r.def.name.toUpperCase()}`, {
+          trigger: () => {
+            if (r.taken) return;
+            r.taken = true;
+            this.inventory.collectRelic(r.id);
+            this.fx.shockRing(r.pos, { colour: [0.4, 0.95, 0.7], size: 0.5, size1: 5, life: 0.7 });
+            this.fx.chronoMotes(r.pos, { count: 18, colour: [0.4, 0.95, 0.7] });
+            r.rel.setPayload(null);
+            this.examiner.open(r.id, r.def);
+          },
+        });
+      }
     }
   }
 
@@ -552,6 +681,7 @@ export class Game {
     this.usePromptActive = null;
     // director's interactables set it during their update
     this.director.update(dtWorld, dtReal);
+    this.updateRelicPickups(dtReal);
     if (this.usePromptActive) {
       this.hud.setUsePrompt(this.usePromptActive.label, 'E');
       if (input.hit('use')) {
@@ -600,12 +730,15 @@ export class Game {
       if (this.clouds) this.clouds.setVisible(zone === 'temple' || zone === 'mirror');
       if (this.stars) this.stars.visible = zone === 'colonnade' || zone === 'nexus';
     }
+    this.updateSectionVisibility(p.pos);
     this.env.update(dtReal, this.camera, time.dilationAmount);
     this.sea?.update(dtWorld, this.camera);
     this.clouds?.update(dtWorld, this.camera);
     if (this.stars) this.stars.userData.mat.uniforms.uTime.value += dtReal;
     this.level.update(dtWorld, time.now, this);
     this.hub?.update(dtReal, this);
+    this.cortex?.update(dtWorld, time.now, this);
+    this.altar?.update(dtWorld, time.now, this);
 
     /* ---- fx + audio + hud ---------------------------------------- */
     this.fx.update(dtWorld, dtReal);
@@ -626,6 +759,8 @@ export class Game {
     this.clouds?.update(dtReal * 0.15, this.camera);
     this.level?.update(dtReal * 0.15, time.now, this);
     this.hub?.update(dtReal, this);
+    this.cortex?.update(dtReal * 0.15, time.now, this);
+    this.altar?.update(dtReal * 0.15, time.now, this);
     this.fx.update(0, dtReal);
     this.postfx.update(dtReal, time.dilationAmount);
     this.hud.update(dtReal);

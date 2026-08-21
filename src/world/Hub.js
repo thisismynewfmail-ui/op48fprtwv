@@ -22,6 +22,7 @@ import { box, cyl, sphere, LAYER, Body } from './Physics.js';
 import { RELICS, RELIC_COUNT, relicModel } from '../game/Relics.js';
 import { rand, clamp, lerp } from '../core/Time.js';
 import { cfg } from '../core/Config.js';
+import { bakeStatic, keepDynamic } from './Batch.js';
 
 const TAU = Math.PI * 2;
 
@@ -32,7 +33,33 @@ const R_OUT = 44;                       // octagon vertex radius
 const R_SIDE = R_OUT * Math.cos(Math.PI / 8);   // side-midpoint radius
 const WELL_R = 13;                      // the orrery well
 const WELL_D = 4.2;
-const WALL_H = 13;
+const WALL_H = 19;                      // tall enough for a second tier
+const BALCONY_Y = 9.6;                  // the future-expansion gallery
+const BALCONY_W = 4.6;
+
+/**
+ * FUTURE EXPANSION.
+ *
+ * The atrium is built as a two-tier hub so later levels do not need it torn
+ * up. The ground tier is Level One: six gates plus the Vitrine Hall and the
+ * workshop. The balcony above carries eight more portals, one per future
+ * chapter, sealed and legible until someone builds behind them.
+ *
+ * To ship a new level: add its sections to `CHAPTERS`, point the portal at a
+ * destination in `Game.DEST`, and set `built: true`. Nothing else here
+ * changes — the geometry, the labels and the locks all read from this list.
+ */
+export const CHAPTERS = [
+  { id: 1, name: 'THE TERMINAL HOUR',        built: true,
+    sections: ['temple', 'mirror', 'colonnade', 'nexus', 'cortex', 'altar'] },
+  { id: 2, name: 'THE GARDEN OF FORKING CLOCKS', built: false, sections: [] },
+  { id: 3, name: 'THE LONG SUNDAY',          built: false, sections: [] },
+  { id: 4, name: 'MOTHERBOARD OF THE DROWNED', built: false, sections: [] },
+  { id: 5, name: 'A ROOM WITH NO INSTANT',    built: false, sections: [] },
+  { id: 6, name: 'THE SLEEP OF REASON',       built: false, sections: [] },
+  { id: 7, name: 'CARRIER LOST',              built: false, sections: [] },
+  { id: 8, name: 'THE LAST COMPILE',          built: false, sections: [] },
+];
 
 /** The eight bays, in order, starting due north (-Z) and going clockwise. */
 export const BAYS = [
@@ -106,11 +133,30 @@ export class Hub {
     this.buildFloor();
     this.buildWell();
     this.buildPerimeter();
+    this.buildBalcony();
     this.buildBays();
     this.buildVitrineHall();
     this.buildWorkshop();
     this.buildGardens();
     this.buildSky();
+    this.bake();
+  }
+
+  /**
+   * Collapse the atrium's static marble into one mesh per material. The
+   * orrery, the gate veils, the terminals, the clock and the drifting binary
+   * all animate, so they are exempted first.
+   */
+  bake() {
+    if (this.orrery) keepDynamic(this.orrery);
+    for (const rec of this.gates.values()) keepDynamic(rec.grp);
+    if (this.workshop) keepDynamic(this.workshop);
+    if (this.saveClock) keepDynamic(this.saveClock);
+    for (const o of this.root.children) {
+      // the drifting-binary layer and anything with a live material
+      if (o.isGroup && o.children.some((c) => c.material && c.material.map === T.glyph1)) keepDynamic(o);
+    }
+    this.batchStats = bakeStatic(this.root);
   }
 
   /* ------------------------------------------------------------ FLOOR */
@@ -336,7 +382,7 @@ export class Hub {
       panel.rotation.y = -a + Math.PI / 2;
       g.add(panel);
 
-      const openW = 7.0, openH = 8.4;
+      const openW = 7.0, openH = 8.0;
       const t = 1.0;
       // left and right piers
       for (const s of [-1, 1]) {
@@ -410,6 +456,134 @@ export class Hub {
   }
 
   /* ------------------------------------------------------------ BAYS */
+
+  /* ---------------------------------------------- EXPANSION TIER --- */
+
+  /**
+   * The upper gallery. A ring balcony reached by two stairs, carrying one
+   * portal per future chapter. Unbuilt chapters stand dark behind a plate
+   * that says so; the moment a chapter is marked built its portal lights and
+   * behaves exactly like a ground-tier gate.
+   */
+  buildBalcony() {
+    const g = this.root;
+    const rIn = R_OUT - BALCONY_W;
+
+    // the deck: an octagonal ring cantilevered off the wall
+    const deck = new THREE.Mesh(new THREE.RingGeometry(rIn, R_OUT, 8, 1), M.marbleCream);
+    deck.rotation.x = -Math.PI / 2;
+    deck.rotation.z = Math.PI / 8;
+    deck.position.y = BALCONY_Y;
+    deck.receiveShadow = true;
+    g.add(deck);
+    const under = new THREE.Mesh(
+      new THREE.CylinderGeometry(R_OUT, rIn, 0.8, 8, 1, true), bothSides(M.marbleGrey));
+    under.rotation.y = Math.PI / 8;
+    under.position.y = BALCONY_Y - 0.4;
+    g.add(under);
+
+    // walkable collision, as eight straight runs rather than a ring
+    for (let i = 0; i < 8; i++) {
+      const a = bayAngle(i);
+      const mid = (rIn + R_OUT) / 2;
+      const len = 2 * mid * Math.tan(Math.PI / 8);
+      this.cBox(Math.cos(a) * mid, BALCONY_Y - 0.25, Math.sin(a) * mid,
+        Math.abs(Math.sin(a)) * len / 2 + Math.abs(Math.cos(a)) * BALCONY_W / 2, 0.25,
+        Math.abs(Math.cos(a)) * len / 2 + Math.abs(Math.sin(a)) * BALCONY_W / 2,
+        { surface: 'marble' });
+    }
+
+    // a balustrade along the inner edge
+    for (let i = 0; i < 8; i++) {
+      const a = bayAngle(i);
+      const len = 2 * rIn * Math.tan(Math.PI / 8);
+      const bal = Arch.balustrade(len, { axis: 'x', h: 1.05, mat: M.marbleCream, spacing: 0.6 });
+      bal.position.set(Math.cos(a) * rIn, BALCONY_Y, Math.sin(a) * rIn);
+      bal.rotation.y = -a + Math.PI / 2;
+      g.add(bal);
+      this.cBox(Math.cos(a) * (rIn - 0.2), BALCONY_Y + 0.6, Math.sin(a) * (rIn - 0.2),
+        Math.abs(Math.sin(a)) * len / 2 + 0.3, 0.6,
+        Math.abs(Math.cos(a)) * len / 2 + 0.3, { layer: LAYER.CLIP });
+    }
+
+    // two stairs up, on opposite flanks, so the tier is reachable from either side
+    for (const dir of [1, -1]) {
+      const a = bayAngle(dir > 0 ? 2 : 6);
+      const steps = 16, rise = BALCONY_Y / steps, run = 0.62;
+      for (let i = 0; i < steps; i++) {
+        const r = R_OUT - BALCONY_W - 1.2 - i * run;
+        const st = new THREE.Mesh(new THREE.BoxGeometry(3.4, rise, run + 0.4), M.marbleCream);
+        const off = 3.2 * dir;
+        const px = Math.cos(a) * r - Math.sin(a) * off;
+        const pz = Math.sin(a) * r + Math.cos(a) * off;
+        st.position.set(px, BALCONY_Y - rise * (i + 0.5), pz);
+        st.rotation.y = -a;
+        st.castShadow = st.receiveShadow = true;
+        g.add(st);
+        this.cBox(px, BALCONY_Y - rise * (i + 0.5), pz, 1.7, rise / 2, (run + 0.4) / 2, { surface: 'marble' });
+      }
+    }
+
+    // one portal per future chapter, in the wall above each bay
+    const future = CHAPTERS.filter((c) => c.id !== 1);
+    for (let i = 0; i < 8; i++) {
+      const ch = future[i % future.length];
+      const a = bayAngle(i);
+      const grp = new THREE.Group();
+      grp.position.set(Math.cos(a) * (R_OUT - 0.4), BALCONY_Y, Math.sin(a) * (R_OUT - 0.4));
+      grp.rotation.y = -a + Math.PI / 2;
+      g.add(grp);
+
+      const W = 4.6, H = 5.6;
+      const recess = new THREE.Mesh(new THREE.BoxGeometry(W, H, 0.5),
+        ch.built ? M.marbleWhite : M.marbleBlack);
+      recess.position.set(0, H / 2, -0.4);
+      grp.add(recess);
+      for (const sx of [-1, 1]) {
+        const jamb = new THREE.Mesh(new THREE.BoxGeometry(0.34, H, 0.5), M.brassBrushed);
+        jamb.position.set(sx * W / 2, H / 2, -0.1);
+        grp.add(jamb);
+      }
+      const lintel = new THREE.Mesh(new THREE.BoxGeometry(W + 0.9, 0.4, 0.6), M.brassBrushed);
+      lintel.position.set(0, H, -0.1);
+      grp.add(lintel);
+
+      const plate = this.makePlate(
+        ch.built ? ch.name : `LEVEL ${ch.id}`,
+        3.6, 0.62,
+        ch.built ? 0xffd98a : 0x6a6478,
+        ch.built ? '' : 'not yet compiled');
+      plate.position.set(0, H + 0.72, 0.05);
+      grp.add(plate);
+
+      if (ch.built) {
+        const veil = new THREE.Mesh(new THREE.PlaneGeometry(W - 0.4, H - 0.3),
+          new THREE.MeshBasicMaterial({ map: T.noise, color: 0xc9a6ff, transparent: true,
+            opacity: 0.24, blending: THREE.AdditiveBlending, depthWrite: false }));
+        veil.position.set(0, H / 2, -0.1);
+        grp.add(veil);
+        const l = new THREE.PointLight(0xc9a6ff, 2.4, 14, 2);
+        l.position.set(0, H * 0.6, 1.4);
+        grp.add(l);
+      } else {
+        // sealed: a dead lamp and a shuttered face, so the room reads as
+        // finished rather than unfinished
+        const lamp = new THREE.Mesh(new THREE.CircleGeometry(0.16, 12),
+          new THREE.MeshBasicMaterial({ color: 0x281c14, toneMapped: false }));
+        lamp.position.set(W / 2 - 0.55, 0.75, 0.02);
+        grp.add(lamp);
+        for (let k = 0; k < 5; k++) {
+          const slat = new THREE.Mesh(new THREE.BoxGeometry(W - 0.5, 0.7, 0.16), M.marbleGrey);
+          slat.position.set(0, 0.6 + k * 1.0, 0.06);
+          grp.add(slat);
+        }
+      }
+      // the wall behind is solid whether or not the chapter exists
+      this.cBox(Math.cos(a) * (R_OUT - 0.2), BALCONY_Y + H / 2, Math.sin(a) * (R_OUT - 0.2),
+        Math.abs(Math.sin(a)) * W / 2 + 0.4, H / 2,
+        Math.abs(Math.cos(a)) * W / 2 + 0.4, { surface: 'marble' });
+    }
+  }
 
   buildBays() {
     for (let i = 0; i < 8; i++) {
@@ -514,7 +688,13 @@ export class Hub {
     this.root.add(hall);
     this.vitrineHall = hall;
 
-    const L = 52, W = 13, H = 6.4;
+    // The hall SIZES ITSELF from the relic registry, so a future chapter that
+    // adds ten more relics gets ten more plinths and a longer nave without
+    // anyone editing this number.
+    const PITCH = 6.2;                                    // metres per facing pair
+    const rows = Math.max(8, Math.ceil(RELICS.length / 2));
+    const L = Math.max(52, rows * PITCH + 14);
+    const W = 13, H = 6.4;
     const fwd = new THREE.Vector3(Math.cos(a), 0, Math.sin(a));   // outward
     const rgt = new THREE.Vector3(-Math.sin(a), 0, Math.cos(a));
 
@@ -555,10 +735,11 @@ export class Hub {
     vault.receiveShadow = true;
     hall.add(vault);
     // coffer ribs across the vault, so it is not a bare tube
-    for (let i = 1; i < 9; i++) {
+    const ribs = Math.max(6, Math.round(L / 6));
+    for (let i = 1; i < ribs; i++) {
       const rib = new THREE.Mesh(new THREE.TorusGeometry(W / 2 + 0.06, 0.16, 6, 22, Math.PI), M.marbleWhite);
       rib.rotation.y = Math.PI / 2;
-      rib.position.set(0, H, (i / 9) * L);
+      rib.position.set(0, H, (i / ribs) * L);
       hall.add(rib);
     }
     // end wall
@@ -570,12 +751,11 @@ export class Hub {
       Math.abs(Math.sin(a)) * W / 2 + 0.5, (H + W / 2) / 2,
       Math.abs(Math.cos(a)) * W / 2 + 0.5, { surface: 'marble' });
 
-    // sixteen plinths, eight a side, facing inward
-    const rows = 8;
+    // plinths, half a side, facing inward across the nave
     RELICS.forEach((def, k) => {
       const side = k % 2 ? 1 : -1;
       const row = Math.floor(k / 2);
-      const along = 6.5 + row * ((L - 12) / (rows - 1));
+      const along = 7 + row * ((L - 14) / Math.max(1, rows - 1));
       const px = side * (W / 2 - 3.1);
       const wx = cx + fwd.x * (along - L / 2) + rgt.x * px;
       const wz = cz + fwd.z * (along - L / 2) + rgt.z * px;
@@ -596,8 +776,9 @@ export class Hub {
     });
 
     // clerestory lamps down the vault
-    for (let i = 0; i < 3; i++) {
-      const along = 9 + i * ((L - 16) / 2);
+    const lamps = Math.max(3, Math.round(L / 18));
+    for (let i = 0; i < lamps; i++) {
+      const along = 9 + i * ((L - 18) / Math.max(1, lamps - 1));
       const wx = cx + fwd.x * (along - L / 2), wz = cz + fwd.z * (along - L / 2);
       const lamp = new THREE.PointLight(0xcfe8dc, 5.5, 40, 2);
       lamp.position.set(wx, H + 3.4, wz);

@@ -1,15 +1,15 @@
-# SILICONE DREAMS — Chapter One: *The Terminal Hour*
+# SILICONE DREAMS — Level One
 
-A first-person shooter for a Source engine that never shipped.
+A first-person immersive sim for a Source engine that never shipped.
 
-**HALCYON** is a vaporware FPS: a recovered 2003-era prototype of a game about
-a marble temple floating on a violet sea, a plane of circuit-board faces
-reflected in a perfect mirror, a colonnade of stopped clocks, and a nexus
-where a bronze sun sleeps opposite a moon that keeps runic time. It runs in a
-browser, at 60fps, with no build step and no downloaded assets — every
-texture, model, sound and note in it is generated at load time from code.
+**SILICONE DREAMS** is a vaporware immersive sim: a recovered 2003-era
+prototype about classical marble with silicon growing through it. You wake in
+an octagonal atrium whose grout is a live circuit, with six gates out of it
+and a hall of empty vitrines waiting to be filled. It runs in a browser with
+no build step and no downloaded assets — every texture, model, sound and note
+in it is generated at load time from code.
 
-![The Terminal Temple](docs/shots/p1-temple.png)
+![The Atrium of Sleeping Machines](docs/shots/final-atrium.png)
 
 ---
 
@@ -39,6 +39,8 @@ Requires WebGL. Click the canvas to capture the mouse.
 | **Q** *(hold)* | **dilate time** — the world drops to 12% speed; you do not |
 | **T** | **rewind** — replays your last four seconds and puts you back in them |
 | **F** | **stasis** — freezes one object or one enemy out of time |
+| **Tab** | journal — objectives and field notes |
+| **E** | use / take |
 | **`** | developer console |
 | **Esc** | pause |
 
@@ -66,9 +68,34 @@ the hour finally moves.
 
 ---
 
-## The four rooms
+## The hub
 
-Each zone is a reconstruction of one reference plate.
+**THE ATRIUM OF SLEEPING MACHINES** is built from nothing — none of the
+reference plates are of this place, because this is where you keep the things
+you take from them.
+
+An octagonal marble hall, sunk in the middle with a brass orrery that turns
+and keeps the wrong time. Eight bays: six gates out to the level's sections,
+one workshop and long desk of period terminals, one opening onto the **Vitrine
+Hall** — a barrel-vaulted gallery of reliquary plinths that fill as you
+recover relics. A balcony tier above carries eight more portals, one per
+future chapter, sealed and labelled until someone builds behind them.
+
+Everything is diegetic: the save point is a chronometer you wind, the upgrade
+screen is a bench you stand at, the collection screen is a room you walk down.
+
+![The Vitrine Hall](docs/shots/v-hall.png)
+
+To ship a new level, add it to `CHAPTERS` in `src/world/Hub.js` and point its
+portal at a destination. The geometry, the labels, the locks and the Vitrine
+Hall's length all read from that list — the hall sizes itself from the relic
+registry, so ten more relics get ten more plinths and a longer nave.
+
+---
+
+## The sections
+
+Each is a reconstruction of one reference plate.
 
 | Zone | Plate | What it is |
 |---|---|---|
@@ -76,14 +103,52 @@ Each zone is a reconstruction of one reference plate.
 | **B — The Mirror of Faces** | noon blue | A perfect reflecting plane under a photographic sky, and rank on rank of hollow circuit-board masks hanging over their own reflections. Most of them are asleep. |
 | **C — The Colonnade of Hours** | starfield | A marble checkerboard causeway under rose-stone arches receding to a vanishing point, carrying a longcase clock, an hourglass, and a floor sundial six metres across. |
 | **D — The Nexus of Sun and Moon** | the void | A star-shaped platform. A sleeping bronze sun on one column, a runic four-handed moon-clock on the other, the Earth on a marble stair between them, and a golden key lying where someone dropped it. |
+| **E — The Cortex Engine** | the wired brain | A brain the size of a hill in a red corona: pink flesh on one side, blue-grey and stapled on the other. Ribbed insulator stacks throw arcs across the route, twin triodes burn orange, a hazard-striped ACCESS panel is the way home, and a red LED timer reads 0123 / REC ON — the only clock in the level telling the truth. You cross it on membrane catwalks, surgical staples bridging the sulci, and a coiled handset cord you walk up. |
+| **F — The Altar of Ascending Binary** | the reliquary | A plain of dark volcanic rock under an indigo sky, an avenue of lesser reliquaries, and a monolith with the oil-slick brain turning over its mercury dish, pouring chrome ones and zeroes into the air. |
 
 ![The Mirror of Faces](docs/shots/p3-mirror2.png)
 ![The Colonnade of Hours](docs/shots/p4-colonnade.png)
 ![The Nexus of Sun and Moon](docs/shots/p2-nexus.png)
+![The Cortex Engine](docs/shots/c-ext.png)
+![Grafted hardware](docs/shots/c-tubes.png)
+![The Altar of Ascending Binary](docs/shots/a-approach.png)
 
-The zones are strung along −Z and joined by colonnade bridges; the sky, fog
-and light lerp between presets as you cross, so a bridge reads as a change of
-world rather than a cut.
+The four original sections are strung along −Z and joined by colonnade
+bridges; the sky, fog and light lerp between presets as you cross. The two new
+sections sit on their own islands of space, reached through the atrium's
+gates. Section roots and their lights are culled by distance, because a
+corona the size of the Cortex's is visible from four hundred metres away.
+
+---
+
+## The pickup grammar
+
+The second plate is not just a place, it is a **grammar**, and the game uses
+it everywhere:
+
+> a black monolith wrapped in green circuit traces and jewelled components, a
+> dish of standing mercury set into its crown, a column of vapour rising off
+> it, the object turning slowly in the air above, and a stream of chrome ones
+> and zeroes climbing out of it and going out like sparks.
+
+Every relic in the world appears that way. Every vitrine in the hub is the
+same object with an empty slot. The altar at the end of the level is the same
+thing built forty times bigger. Read it once and you can read it anywhere.
+
+![A relic on its plinth](docs/shots/relic-02.png)
+
+---
+
+## Immersive sim
+
+- **Sixteen relics**, each a built model with a name and a line of lore, each
+  with a labelled plinth waiting in the Vitrine Hall.
+- **Examination** — hold an object up and turn it over while the game goes
+  quiet, rendered in the viewmodel scene so it never clips the world.
+- **Inventory** of sigils and tools; the six gates read what you are carrying.
+- **A journal** of objectives and field notes, written as you find things.
+- **A hub that is a UI** — wind the chronometer to save, stand at the bench to
+  spend, walk the hall to see what you have.
 
 ---
 
@@ -156,21 +221,23 @@ slow orbs you learn to dilate around), and the **Herald**, a three-phase boss
 that summons, barrages, and drags a great clock hand around the arena at
 ankle height. All of them obey world time.
 
-**Post-processing** (`src/render/PostFX.js`) — the frame renders at ~70%
-resolution, is tone-mapped, bloomed *in display space*, then run through one
-CRT composite: barrel distortion, per-channel chromatic aberration that grows
-toward the corners, a VHS tracking band that tears the scanlines sideways,
-an aperture grille computed in **output** pixels, 16-bit quantisation with an
-ordered Bayer dither, vignette and grain — plus a chrono grade that pushes
-the whole frame amber as time dilates. The low internal resolution is not a
-performance concession; 2003 games were soft, and upscaling a 0.7× buffer is
-what that softness *is*.
+**Post-processing** (`src/render/PostFX.js`) — the CRT layer is seasoning,
+not the meal. The frame renders at **native resolution with 4× MSAA**, is
+tone-mapped, bloomed *in display space*, then run through one CRT composite
+with everything turned down to **0.15**: a whisper of curvature (with
+compensating overscan, so it never shows a black frame), per-channel
+chromatic aberration, an aperture grille computed in output pixels, a light
+ordered dither whose level count scales with the slider, vignette and grain —
+plus a chrono grade that pushes the frame amber as time dilates. Every one of
+those is exposed in Options.
 
-**Static batching** (`src/world/Batch.js`) — the level is thousands of small
-meshes: fluted shafts, acanthus leaves, balusters, keycaps, ivy. After
-assembly each zone is walked, every static mesh's transform baked into its
-geometry *in zone-local space*, and the results merged by material. Draw
-calls went from ~3,150 to ~215.
+**Static batching** (`src/world/Batch.js`) — the world is thousands of small
+meshes: fluted shafts, acanthus leaves, balusters, keycaps, ivy, sixteen
+reliquary plinths. After assembly each zone, the hub, the Cortex and the
+Altar are walked, every static mesh's transform baked into its geometry *in
+zone-local space*, and the results merged by material. Combined with distance
+culling of section roots and of the point lights parented to the scene root,
+draw calls in the atrium went from ~3,150 to ~400.
 
 ---
 
@@ -189,8 +256,15 @@ r_scale 0.5 · r_crt 0 · r_chroma 2 · m_sensitivity 0.003
 
 ## Status
 
-Chapter One is complete and playable start to finish: twenty-one scripted
-stages, four weapons, three enemy types, a boss, checkpoints, autosave,
-closed captions, and an options menu that exposes every knob on the CRT.
+Level One is playable start to finish. You wake in the atrium, take the
+gnomon off the bench, and go out through whichever gate you can open. Six
+sections, sixteen relics, four weapons, three enemy types, a boss, three time
+powers, checkpoints, autosave, closed captions, a journal, and an options
+menu that exposes every knob on the CRT.
 
-*Chapter Two — THE GARDEN OF FORKING CLOCKS — was never built.*
+**Not yet built:** the workshop bench accepts silicone but has no upgrade
+list behind it; the long desk's terminals are set dressing rather than
+readable; and the Cortex's lamp-row sequence and the multi-route bypasses are
+scaffolded but not wired to locks.
+
+*LEVEL TWO — THE GARDEN OF FORKING CLOCKS — was never compiled.*

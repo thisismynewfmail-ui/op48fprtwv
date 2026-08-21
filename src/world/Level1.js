@@ -166,6 +166,7 @@ function sconce(B, x, y, z, colour = 0xffd9a0, intensity = 1.4, dist = 14) {
   grp.add(light);
   flame.scale.setScalar(0.55);
   B.at(grp, x, y, z);
+  B.game.registerCullable(grp, x, z, 110);
   const phase = rand(0, 7);
   B.anim((dt, t, game) => {
     const f = 0.82 + Math.sin(t * 7 + phase) * 0.10 + Math.sin(t * 17.3 + phase) * 0.06;
@@ -819,6 +820,7 @@ function buildNexus(B, game) {
   const sunLight = new THREE.PointLight(0xffd9a0, 2.2, 40, 2);
   sunLight.position.set(Z.x + sunX + 2, 10.6, Z.z - 2 + 2);
   B.add(sunLight);
+  B.game.registerCullable(sunLight, Z.x + sunX + 2, Z.z - 2 + 2, 120);
 
   // --- the moon column -----------------------------------------------------
   const moonX = 12.5;
@@ -849,6 +851,7 @@ function buildNexus(B, game) {
   const moonLight = new THREE.PointLight(0xa8c0ff, 1.6, 36, 2);
   moonLight.position.set(Z.x + moonX - 2, 10.2, Z.z - 2 + 2);
   B.add(moonLight);
+  B.game.registerCullable(moonLight, Z.x + moonX - 2, Z.z - 2 + 2, 120);
 
   // --- the Earth on its stair -----------------------------------------------
   const stair = Arch.staircase({ steps: 9, width: 5.0, rise: 0.30, run: 0.55, mat: M.marbleWhite, taper: 0.25 });
@@ -877,6 +880,7 @@ function buildNexus(B, game) {
   const earthLight = new THREE.PointLight(0x9fc4ff, 1.1, 28, 2);
   earthLight.position.set(Z.x, 7.4, Z.z - 10.5);
   B.add(earthLight);
+  B.game.registerCullable(earthLight, Z.x, Z.z - 10.5, 120);
 
   // --- the golden key, lying where it was dropped ----------------------------
   game.marks.keyPos = new THREE.Vector3(Z.x - 9.5, 0.20, Z.z + 8.5);
@@ -991,6 +995,8 @@ export function buildLevel1(game) {
     { name: 'colonnade', z0: ZONE.C.z + 72, z1: ZONE.C.z - 70 },
     { name: 'nexus',     z0: ZONE.D.z + 70, z1: ZONE.D.z - 70 },
     { name: 'atrium',    z0: 760,           z1: 480 },
+    { name: 'cortex',    z0: 1120,          z1: 860 },
+    { name: 'altar',     z0: 1460,          z1: 1180 },
   ];
 
   const level = {
